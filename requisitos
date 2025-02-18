@@ -1,0 +1,53 @@
+acesso a localização
+chat de texto
+criação de contas padrão
+criação de contas de times de futebol
+feed de postagens de jogadores e times (pra fazer um merchandise dos jogadores e jogadas)
+aba pra basquete
+aba pra futebol
+aba pra vôlei
+
+
+o usuário deve poder criar uma conta
+o usuário deve poder excluir sua conta
+o ususario deve poder editar informações em sua conta
+o usuário deve ter um chat por texo para facilitar a comunicação, (seria interessante se ele pudesse escolher entre eum pde mnadar mensagens ra ele, se seria so times ou qualquer outr jogador, ou se teria uma lista de quem pode esse tipo de coisa)
+o usuário deve poder postar conteudo
+
+o usuariotime deve poder anexar jogadores ao seu time
+o usuariotime deveter um chat de texto para poder se comunicar com possíveis jogadores
+o usuariotime deve poder criar postagens, sejam elas fotos ou vídeos
+o usuariotime deve poder editar as configurações de  sua conta
+o usuariotime deve poder definir um novo administrador a conta, ou mais de um admininstrador
+-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_
+
+
+as contas de usuário devem ter:
+
+pefil jogador:
+parte de cima do perfil:
+	telefone
+	email
+	localização 
+	nome
+		
+parte de baixo:
+	feed de postagens do usuário(como jogadas e etc)
+
+(seria interessante adicionar em algum lugar a porcentagem de desempenho do jogador combase em avaliações)
+	
+
+
+perfil do time:
+parte de cima:
+	nome do adm do time
+	localização
+	meios de contato
+
+parte de baixo:
+	feed de postagens
+	jogadores do time (seria interessante se os nomes dos jogadores fossem um link para o perfil deles)
+
+
+		
+
