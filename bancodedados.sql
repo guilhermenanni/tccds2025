@@ -37,6 +37,7 @@ texto_postagem VARCHAR(255),
 img_postagem VARCHAR(255),
 categoria VARCHAR(20),
 data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+tag VARCHAR(40),
 id_usuario INT NOT NULL,
 FOREIGN KEY(id_usuario) REFERENCES tb_usuario(id_usuario)
 );
