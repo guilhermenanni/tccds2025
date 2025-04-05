@@ -1,10 +1,10 @@
--- criação do banco de dados
+
 create database db_draftme;
 use db_draftme;
 
 #drop database db_draftme;
 
--- criação da tabela de times
+
 create table tb_time (
     id_time int auto_increment primary key,
     nm_time varchar(90) not null,
@@ -14,7 +14,6 @@ create table tb_time (
     localizacao_time varchar(100)
 );
 
--- criação da tabela de usuários
 create table tb_usuario (
     id_usuario int auto_increment primary key,
     nm_usuario varchar(90) not null,
@@ -28,12 +27,12 @@ create table tb_usuario (
     foreign key (id_time) references tb_time(id_time)
 );
 
--- adicionando a fk do usuário (dono) na tabela de times
+
 alter table tb_time add column id_usuario int not null;
 alter table tb_time add constraint fk_time_usuario
     foreign key (id_usuario) references tb_usuario(id_usuario);
 
--- criação da tabela de postagens
+
 create table tb_postagem (
     id_postagem int auto_increment primary key,
     texto_postagem varchar(255),
@@ -45,7 +44,7 @@ create table tb_postagem (
     foreign key (id_usuario) references tb_usuario(id_usuario)
 );
 
--- criação da tabela de respostas de postagens
+
 create table tb_resposta_postagem (
     id_resposta int auto_increment primary key,
     id_usuario int not null,
@@ -55,7 +54,7 @@ create table tb_resposta_postagem (
     foreign key (id_postagem) references tb_postagem(id_postagem)
 );
 
--- criação da tabela de chat
+
 create table tb_chat (
     id_chat int auto_increment primary key,
     id_usuario int not null,
@@ -68,6 +67,6 @@ select * from tb_time;
 
 /*
 guilherme VAI SE FUDE SEU AUTISTA DO CARALHO O BANCO TAVA TODO FUDIDO VAI TOMA NO CU
-TINHA NEM SENHA NA PARTE DO USUARIO SEU IMUNDO DO KRL O BGL NEM FUNCIONAVA MACACO
+TINHA NEM SENHA NA PARTE DO USUARIO SEU IMUNDO DO KRL O BGL NEM FUNCIONAVA MACACO e draftme tava escrito errado 
 */
 
