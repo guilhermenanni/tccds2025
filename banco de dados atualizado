@@ -66,9 +66,3 @@ create table tb_chat (
 
 select * from tb_usuario;
 select * from tb_time;
-
-/*
-guilherme VAI SE FUDE SEU AUTISTA DO CARALHO O BANCO TAVA TODO FUDIDO VAI TOMA NO CU
-TINHA NEM SENHA NA PARTE DO USUARIO SEU IMUNDO DO KRL O BGL NEM FUNCIONAVA MACACO
-*/
-
