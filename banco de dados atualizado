@@ -3,13 +3,13 @@ create database db_draftme;
 use db_draftme;
 
 #drop database db_draftme;
-#tenho que arrumar o abnco aind pois o cadastro do time tá meio merda 
+#tenho que arrumar o banco ainda
 -- criação da tabela de times
 create table tb_time (
     id_time int auto_increment primary key,
     nm_time varchar(90) not null,
 	email_time varchar(100) not null,
-    time_cnpj varchar(14), -- opcional, pois pode haver times amadores (time sem cnpj pra mim é quadrilha vtmnc)
+    time_cnpj varchar(14),
     categoria_time varchar(20) not null,
     esporte_time varchar(90),
     localizacao_time varchar(100)
