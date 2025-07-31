@@ -13,6 +13,7 @@ create table tb_time (
     categoria_time varchar(20) not null,
     senha_time varchar(300),
     esporte_time varchar(90),
+	sobre_time longtext,
     localizacao_time varchar(100)
 );
 
