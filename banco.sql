@@ -34,10 +34,7 @@ create table tb_usuario (
     foreign key (id_time) references tb_time(id_time)
 );
 
--- adicionando a fk do usuário na tabela de times
-alter table tb_time add column id_usuario int not null;
-alter table tb_time add constraint fk_time_usuario
-    foreign key (id_usuario) references tb_usuario(id_usuario);
+
 
 -- criação da tabela de postagens
 CREATE TABLE tb_postagem (
@@ -75,6 +72,15 @@ create table tb_chat (
     texto_mensagem varchar(400),
     foreign key (id_usuario) references tb_usuario(id_usuario)
 );
+
+
+CREATE TABLE tb_recuperacao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL,
+    codigo VARCHAR(10) NOT NULL,
+    expiracao DATETIME NOT NULL
+);
+
 
 select * from tb_usuario;
 select * from tb_time;
