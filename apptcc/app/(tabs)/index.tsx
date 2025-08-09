@@ -1,7 +1,7 @@
-import { Text, View } from 'react-native';
 import React, { Component } from 'react';
+import { View } from 'react-native';
 
-import LoginScreen from '../../src/screens/login'; // nome correto
+import LoginScreen from '../login/login'; // nome correto
 
 export default class Index extends Component {
   render() {

@@ -1,6 +1,7 @@
 import { Text, View, TextInput } from 'react-native'
 import React, { useState } from 'react'
 import { Link } from 'expo-router'
+
 import { style } from "./loginStyle";
 
 export default function Login() {
@@ -30,7 +31,7 @@ export default function Login() {
                     />
                 </View>
 
-                <Link style={style.createAccountLink} href="">Nao possui uma conta?</Link>
+                <Link style={style.createAccountLink} href="/cadastrar/cadastrar">Nao possui uma conta?</Link>
 
             </View>
         </View>
