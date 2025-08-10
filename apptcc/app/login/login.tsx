@@ -1,12 +1,19 @@
-import { Text, View, TextInput } from 'react-native'
-import React, { useState } from 'react'
-import { Link } from 'expo-router'
+import { Text, View, TextInput, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { Link } from 'expo-router';
+import axios from 'axios';
 
 import { style } from "./loginStyle";
 
 export default function Login() {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
+    
+    const handleLogin = () => {
+        axios.post('http://192.168.0.101:3000/login', {email, senha})
+            .then(res => Alert.alert(res.data.message))
+            .catch(err => Alert.alert('Erro', err.response?.data?.error || 'erro desconhecido'));
+    };
 
     return (
         <View style={style.background}>
@@ -17,8 +24,8 @@ export default function Login() {
                     <TextInput
                         style={style.input}
                         placeholder='Nome de usuário'
-                        value={username}
-                        onChangeText={setUsername}
+                        value={email}
+                        onChangeText={setEmail}
                     />
                 </View>
                 <View style={style.inputBox}>

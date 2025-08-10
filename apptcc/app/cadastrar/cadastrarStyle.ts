@@ -54,3 +54,5 @@ export const style = StyleSheet.create({
         marginBottom:20
     }
 })
+
+export default style

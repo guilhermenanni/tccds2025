@@ -6,8 +6,17 @@ import { style } from './cadastrarStyle';
 
 export default function cadastro() {
     const [email, setEmail] = useState('');
-    const [username, setUsername] = useState('');
+    const [nome, setNome] = useState('');
     const [senha, setSenha] = useState('');
+    const [cpf, setCpf] = useState('');
+    const [dtNasc, setDtNasc] = useState('');
+    const [time, setTime] = useState('');
+
+    const handleCadastro = () => {
+        axios.post('http://192.168.0.101:3000/login', {nome, senha, email, cpf, dtNasc, time})
+            .then(res => Alert.alert(res.data.message))
+            .catch(err => Alert.alert('Erro', err.response?.data?.error || 'erro desconhecido'));
+    };
 
     return (
         <View style={style.background}>
@@ -26,8 +35,8 @@ export default function cadastro() {
                     <TextInput
                         style={style.input}
                         placeholder='Nome de usuário'
-                        value={username}
-                        onChangeText={setUsername}
+                        value={nome}
+                        onChangeText={nome}
                     />
                 </View>
                 <View style={style.inputBox}>
