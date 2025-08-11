@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="1.ico" type="image/x-icon">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="css/style.css">
+    <title>Resetar senha</title>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="form-header">
+            <div class="titles">
+                <div class="title-login">Resetar senha</div>
+            </div>
+        </div>
+
+
+        <form action="atualizar.php" method="POST" class="login-form" autocomplete="off">
+            <input type="hidden" name="email" value="<?php echo $_GET['email']; ?>">
+            <div class="input-box">
+                <input type="password" class="input-field" id="new-password" name="new_password" required>
+                <label for="new-password" class="label">Nova senha</label>
+                <i class='bx bx-lock-alt icon'></i>
+            </div>
+            <div class="input-box">
+                <input type="password" class="input-field" id="confirm-password" name="confirm_password" required>
+                <label for="confirm-password" class="label">Confirmar senha</label>
+                <i class='bx bx-lock-alt icon'></i>
+            </div>
+
+            <br>
+            <div class="input-box">
+                <button class="btn-submit" type="submit">Resetar senha <i class='bx bx-refresh'></i></button>
+            </div>
+        </form>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+    
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const newPass = document.getElementById('new-password').value;
+            const confirmPass = document.getElementById('confirm-password').value;
+            
+            if (newPass !== confirmPass) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+            }
+        });
+    </script>
+</body>
+</html>

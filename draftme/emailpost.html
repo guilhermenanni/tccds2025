@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="1.ico" type="image/x-icon">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="css/style.css">
+    <title>Verificar</title>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="form-header">
+            <div class="titles">
+                <div class="title-login">Verificar email</div>
+            </div>
+        </div>
+
+        <form action="enviarcode.php" method="POST" class="login-form" autocomplete="off">
+            <div class="input-box">
+                <input type="email" class="input-field" id="recovery-email" name="email" required>
+                <label for="recovery-email" class="label">Email</label>
+                <i class='bx bx-envelope icon'></i>
+                
+            </div>
+
+            <br><br><br>
+            <div class="input-box">
+                <button class="btn-submit" type="submit">enviar código <i class='bx bx-mail-send'></i></button>
+            </div>
+            <div class="switch-form">
+                <span><a href="index.php">Voltar a página inicial</a></span>
+            </div>
+        </form>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

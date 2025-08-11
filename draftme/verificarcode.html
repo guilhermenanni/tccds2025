@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="1.ico" type="image/x-icon">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="css/style.css">
+    <title>Validar código</title>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="form-header">
+            <div class="titles">
+                <div class="title-login">Validar código</div>
+            </div>
+        </div>
+
+        <form action="validar.php" method="POST" class="login-form" autocomplete="off">
+            <input type="hidden" name="email" value="<?php echo $_GET['email']; ?>">
+            <div class="input-box">
+                <input type="text" class="input-field" id="verification-code" name="code" required>
+                <label for="verification-code" class="label">Código de verificação</label>
+                <i class='bx bx-lock-alt icon'></i>
+            </div>
+            <br>
+            <div class="input-box">
+                <button class="btn-submit" type="submit">Verificar <i class='bx bx-check'></i></button>
+            </div>
+            <div class="switch-form">
+                <span>Não recebeu o código? <a href="#" id="reenviarcod">Reenviar</a></span><br>
+                <span><a href="index.php">Voltar a página inicial</a></span>
+            </div>
+            
+        </form>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+        document.getElementById('reenviarcod').addEventListener('click', function(e) {
+            e.preventDefault();
+
+            alert('O código de verificação foi reenviado!');
+        });
+    </script>
+</body>
+</html>

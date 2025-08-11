@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil - Rede Esportiva Pro</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">
+          <i class="fas fa-trophy logo-icon"></i>
+          <span>Rede Esportiva Pro</span>
+        </div>
+        
+        <nav class="main-nav">
+          <ul>
+            <li><a href="feed.html"><i class="fas fa-home"></i> Início</a></li>
+            <li><a href="network.html"><i class="fas fa-users"></i> Minha Rede</a></li>
+            <li><a href="events.html"><i class="fas fa-calendar-alt"></i> Eventos</a></li>
+            <li><a href="messages.html"><i class="fas fa-envelope"></i> Mensagens</a></li>
+          </ul>
+        </nav>
+        
+        <div class="user-menu">
+          <img src="img/default-avatar.jpg" alt="Seu perfil" class="user-avatar">
+          <div class="dropdown">
+            <button class="btn btn-icon"><i class="fas fa-chevron-down"></i></button>
+            <div class="dropdown-content">
+              <a href="profile.html" class="active"><i class="fas fa-user"></i> Meu Perfil</a>
+              <a href="settings.html"><i class="fas fa-cog"></i> Configurações</a>
+              <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Sair</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="profile-container">
+      <div class="profile-header">
+        <div class="profile-banner"></div>
+        <div class="profile-info">
+          <img src="img/default-avatar.jpg" alt="Foto do perfil" class="profile-avatar">
+          <div class="profile-details">
+            <h1 class="profile-name">Nome do Usuário</h1>
+            <p class="profile-title">Atleta Profissional - Futebol</p>
+            <p class="profile-location"><i class="fas fa-map-marker-alt"></i> São Paulo, Brasil</p>
+            
+            <div class="profile-stats">
+              <div class="stat">
+                <strong>543</strong>
+                <span>Conexões</span>
+              </div>
+              <div class="stat">
+                <strong>27</strong>
+                <span>Conquistas</span>
+              </div>
+              <div class="stat">
+                <strong>156</strong>
+                <span>Postagens</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="profile-actions">
+            <button class="btn btn-primary">Editar Perfil</button>
+            <button class="btn btn-outline">Compartilhar</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="profile-content">
+        <div class="profile-about">
+          <div class="card">
+            <h2>Sobre</h2>
+            <p id="profileBio">Atleta profissional com 10 anos de experiência em competições nacionais e internacionais.</p>
+            
+            <div class="about-details">
+              <div>
+                <h3>Esportes</h3>
+                <ul id="profileSports">
+                  <li>Futebol - Profissional</li>
+                  <li>Natação - Amador</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3>Conquistas</h3>
+                <ul id="profileAchievements">
+                  <li>Campeão Brasileiro 2023</li>
+                  <li>Vice-campeão Sul-Americano 2022</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="profile-posts">
+          <div class="card">
+            <h2>Postagens</h2>
+            <div class="profile-filters">
+              <button class="btn btn-filter active">Todas</button>
+              <button class="btn btn-filter">Futebol</button>
+              <button class="btn btn-filter">Natação</button>
+            </div>
+            
+            <div class="posts-list" id="profilePosts">
+              <!-- Profile posts will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const app = window.app || new RedeEsportiva();
+      app.loadProfile();
+      
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        AuthService.logout();
+      });
+    });
+  </script>
+</body>
+</html>
