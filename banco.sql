@@ -2,6 +2,7 @@
 create database db_draftme;
 use db_draftme;
 
+
 #drop database db_draftme;
 
 -- criação da tabela de times
@@ -30,7 +31,7 @@ create table tb_usuario (
     email_usuario varchar(100) not null,
     dt_nasc_usuario date not null,
     tel_usuario varchar(12),
-    id_time int, 
+    id_time int,
     foreign key (id_time) references tb_time(id_time)
 );
 
@@ -48,11 +49,7 @@ CREATE TABLE tb_postagem (
     FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario)
 );
 
-ALTER TABLE tb_postagem
-    DROP FOREIGN KEY tb_postagem_ibfk_1,
-    DROP COLUMN id_usuario,
-    ADD COLUMN id_time INT NOT NULL,
-    ADD FOREIGN KEY (id_time) REFERENCES tb_time(id_time);
+
 
 
 -- criação da tabela de respostas de postagens
@@ -72,15 +69,6 @@ create table tb_chat (
     texto_mensagem varchar(400),
     foreign key (id_usuario) references tb_usuario(id_usuario)
 );
-
-
-CREATE TABLE tb_recuperacao (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(100) NOT NULL,
-    codigo VARCHAR(10) NOT NULL,
-    expiracao DATETIME NOT NULL
-);
-
 
 select * from tb_usuario;
 select * from tb_time;
