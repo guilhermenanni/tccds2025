@@ -2,7 +2,6 @@
 create database db_draftme;
 use db_draftme;
 
-
 #drop database db_draftme;
 
 -- criação da tabela de times
@@ -31,7 +30,7 @@ create table tb_usuario (
     email_usuario varchar(100) not null,
     dt_nasc_usuario date not null,
     tel_usuario varchar(12),
-    id_time int,
+    id_time int, 
     foreign key (id_time) references tb_time(id_time)
 );
 
@@ -49,27 +48,100 @@ CREATE TABLE tb_postagem (
     FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario)
 );
 
+ALTER TABLE tb_postagem
+    DROP FOREIGN KEY tb_postagem_ibfk_1,
+    DROP COLUMN id_usuario,
+    ADD COLUMN id_time INT NOT NULL,
+    ADD FOREIGN KEY (id_time) REFERENCES tb_time(id_time);
 
 
 
--- criação da tabela de respostas de postagens
-create table tb_resposta_postagem (
-    id_resposta int auto_increment primary key,
-    id_usuario int not null,
-    id_postagem int not null,
-    texto_resposta varchar(230),
-    foreign key (id_usuario) references tb_usuario(id_usuario),
-    foreign key (id_postagem) references tb_postagem(id_postagem)
+
+
+CREATE TABLE tb_recuperacao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL,
+    codigo VARCHAR(10) NOT NULL,
+    expiracao DATETIME NOT NULL
 );
 
--- criação da tabela de chat
-create table tb_chat (
-    id_chat int auto_increment primary key,
-    id_usuario int not null,
-    texto_mensagem varchar(400),
-    foreign key (id_usuario) references tb_usuario(id_usuario)
+
+
+CREATE TABLE tb_comentario (
+    id_comentario INT AUTO_INCREMENT PRIMARY KEY,
+    id_postagem INT NOT NULL,
+    id_time INT NULL,
+    id_usuario INT NULL,
+    texto_comentario TEXT NOT NULL,
+    data_comentario TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_postagem) REFERENCES tb_postagem(id_postagem) ON DELETE CASCADE,
+    FOREIGN KEY (id_time) REFERENCES tb_time(id_time) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario) ON DELETE CASCADE
 );
+
+
+
+-- Tabela para postagens seletivas
+CREATE TABLE tb_seletiva (
+    id_seletiva INT AUTO_INCREMENT PRIMARY KEY,
+    id_time INT NOT NULL,
+    titulo VARCHAR(100) NOT NULL,
+    localizacao VARCHAR(100) NOT NULL,
+    data_seletiva DATE NOT NULL,
+    hora TIME NOT NULL,
+    categoria VARCHAR(50) NOT NULL,
+    subcategoria VARCHAR(50) NOT NULL,
+    sobre TEXT NOT NULL,
+    data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_time) REFERENCES tb_time(id_time)
+);
+
+
+-- Tabela para inscrições nas seletivas
+CREATE TABLE tb_inscricao_seletiva (
+    id_inscricao INT AUTO_INCREMENT PRIMARY KEY,
+    id_seletiva INT NOT NULL,
+    id_usuario INT NOT NULL,
+    data_inscricao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pendente', 'confirmada', 'rejeitada') DEFAULT 'pendente',
+    FOREIGN KEY (id_seletiva) REFERENCES tb_seletiva(id_seletiva),
+    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario)
+);
+
+-- Tabela para curtidas
+-- Criação da tabela de curtidas
+CREATE TABLE tb_curtida (
+    id_curtida INT AUTO_INCREMENT PRIMARY KEY,
+    id_postagem INT NOT NULL,
+    id_usuario INT NULL,
+    id_time INT NULL,
+    data_curtida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_postagem) REFERENCES tb_postagem(id_postagem),
+    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario),
+    FOREIGN KEY (id_time) REFERENCES tb_time(id_time),
+    -- Garante que apenas um dos dois (usuário ou time) está preenchido
+    CONSTRAINT chk_entidade CHECK (
+        (id_usuario IS NOT NULL AND id_time IS NULL) OR 
+        (id_usuario IS NULL AND id_time IS NOT NULL)
+    ),
+    -- Impede curtidas duplicadas da mesma entidade na mesma postagem
+    UNIQUE KEY curtida_unica (id_postagem, id_usuario, id_time)
+);
+
+-- Índices para melhor performance
+CREATE INDEX idx_curtida_postagem ON tb_curtida (id_postagem);
+CREATE INDEX idx_curtida_usuario ON tb_curtida (id_usuario);
+CREATE INDEX idx_curtida_time ON tb_curtida (id_time);
+CREATE INDEX idx_curtida_data ON tb_curtida (data_curtida);
 
 select * from tb_usuario;
 select * from tb_time;
 
+SELECT 
+    c.*,
+    COALESCE(u.nm_usuario, t.nm_time) as entidade_nome,
+    CASE WHEN c.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_entidade
+FROM tb_curtida c
+LEFT JOIN tb_usuario u ON c.id_usuario = u.id_usuario
+LEFT JOIN tb_time t ON c.id_time = t.id_time
+WHERE c.id_postagem = 1;
