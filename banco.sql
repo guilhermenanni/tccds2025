@@ -1,28 +1,24 @@
--- criação do banco de dados
-create database db_draftme;
-use db_draftme;
+CREATE DATABASE IF NOT EXISTS db_draftme;
+USE db_draftme;
 
 #drop database db_draftme;
 
 -- criação da tabela de times
-create table tb_time (
+CREATE TABLE tb_time (
     id_time int auto_increment primary key,
     nm_time varchar(90) not null,
-	email_time varchar(100) not null,
+    email_time varchar(100) not null,
     time_cnpj varchar(14), 
     categoria_time varchar(20) not null,
     senha_time varchar(300),
     esporte_time varchar(90),
-	sobre_time longtext,
-    localizacao_time varchar(100)
+    sobre_time longtext,
+    localizacao_time varchar(100),
+    img_time VARCHAR(255)
 );
 
-
-ALTER TABLE tb_time ADD COLUMN img_time VARCHAR(255);
-
-
 -- criação da tabela de usuários
-create table tb_usuario (
+CREATE TABLE tb_usuario (
     id_usuario int auto_increment primary key,
     nm_usuario varchar(90) not null,
     senha_usuario varchar(90) not null,
@@ -34,9 +30,7 @@ create table tb_usuario (
     foreign key (id_time) references tb_time(id_time)
 );
 
-
-
--- criação da tabela de postagens
+-- criação da tabela de postagens (MODIFICADA para aceitar tanto usuários quanto times)
 CREATE TABLE tb_postagem (
     id_postagem INT AUTO_INCREMENT PRIMARY KEY,
     texto_postagem VARCHAR(255),
@@ -44,20 +38,18 @@ CREATE TABLE tb_postagem (
     categoria VARCHAR(20),
     data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tag VARCHAR(40),
-    id_usuario INT NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario)
+    id_usuario INT NULL,
+    id_time INT NULL,
+    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_time) REFERENCES tb_time(id_time) ON DELETE CASCADE,
+    -- Garante que apenas um dos dois (usuário ou time) está preenchido
+    CONSTRAINT chk_postagem_entidade CHECK (
+        (id_usuario IS NOT NULL AND id_time IS NULL) OR 
+        (id_usuario IS NULL AND id_time IS NOT NULL)
+    )
 );
 
-ALTER TABLE tb_postagem
-    DROP FOREIGN KEY tb_postagem_ibfk_1,
-    DROP COLUMN id_usuario,
-    ADD COLUMN id_time INT NOT NULL,
-    ADD FOREIGN KEY (id_time) REFERENCES tb_time(id_time);
-
-
-
-
-
+-- Tabela para recuperação de senha
 CREATE TABLE tb_recuperacao (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(100) NOT NULL,
@@ -65,8 +57,7 @@ CREATE TABLE tb_recuperacao (
     expiracao DATETIME NOT NULL
 );
 
-
-
+-- Tabela para comentários
 CREATE TABLE tb_comentario (
     id_comentario INT AUTO_INCREMENT PRIMARY KEY,
     id_postagem INT NOT NULL,
@@ -76,12 +67,15 @@ CREATE TABLE tb_comentario (
     data_comentario TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_postagem) REFERENCES tb_postagem(id_postagem) ON DELETE CASCADE,
     FOREIGN KEY (id_time) REFERENCES tb_time(id_time) ON DELETE CASCADE,
-    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario) ON DELETE CASCADE
+    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario) ON DELETE CASCADE,
+    -- Garante que apenas um dos dois (usuário ou time) está preenchido
+    CONSTRAINT chk_comentario_entidade CHECK (
+        (id_usuario IS NOT NULL AND id_time IS NULL) OR 
+        (id_usuario IS NULL AND id_time IS NOT NULL)
+    )
 );
 
-
-
--- Tabela para postagens seletivas
+-- Tabela para seletivas
 CREATE TABLE tb_seletiva (
     id_seletiva INT AUTO_INCREMENT PRIMARY KEY,
     id_time INT NOT NULL,
@@ -96,7 +90,6 @@ CREATE TABLE tb_seletiva (
     FOREIGN KEY (id_time) REFERENCES tb_time(id_time)
 );
 
-
 -- Tabela para inscrições nas seletivas
 CREATE TABLE tb_inscricao_seletiva (
     id_inscricao INT AUTO_INCREMENT PRIMARY KEY,
@@ -109,18 +102,17 @@ CREATE TABLE tb_inscricao_seletiva (
 );
 
 -- Tabela para curtidas
--- Criação da tabela de curtidas
 CREATE TABLE tb_curtida (
     id_curtida INT AUTO_INCREMENT PRIMARY KEY,
     id_postagem INT NOT NULL,
     id_usuario INT NULL,
     id_time INT NULL,
     data_curtida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_postagem) REFERENCES tb_postagem(id_postagem),
-    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario),
-    FOREIGN KEY (id_time) REFERENCES tb_time(id_time),
+    FOREIGN KEY (id_postagem) REFERENCES tb_postagem(id_postagem) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_time) REFERENCES tb_time(id_time) ON DELETE CASCADE,
     -- Garante que apenas um dos dois (usuário ou time) está preenchido
-    CONSTRAINT chk_entidade CHECK (
+    CONSTRAINT chk_curtida_entidade CHECK (
         (id_usuario IS NOT NULL AND id_time IS NULL) OR 
         (id_usuario IS NULL AND id_time IS NOT NULL)
     ),
@@ -133,6 +125,8 @@ CREATE INDEX idx_curtida_postagem ON tb_curtida (id_postagem);
 CREATE INDEX idx_curtida_usuario ON tb_curtida (id_usuario);
 CREATE INDEX idx_curtida_time ON tb_curtida (id_time);
 CREATE INDEX idx_curtida_data ON tb_curtida (data_curtida);
+
+
 
 select * from tb_usuario;
 select * from tb_time;
