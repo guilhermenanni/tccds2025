@@ -4,8 +4,6 @@ Funcionalidades Gerais:
 
 Acesso à localização dos usuários
 
-Chat de texto com configurações de privacidade
-
 Criação e exclusão de contas padrão
 
 Criação e exclusão de contas de times de futebol
@@ -26,10 +24,6 @@ Criar e excluir conta
 
 Editar informações da conta
 
-Configurar quem pode enviar mensagens no chat:
-
-Todos os usuários
-
 Apenas times
 
 Lista personalizada
@@ -38,21 +32,16 @@ Criar postagens (fotos, vídeos e textos)
 
 Exibir um feed de postagens pessoais
 
-Exibir estatísticas de desempenho com base em avaliações
-
 Funcionalidades para Usuários-Times:
 
 Criar e excluir conta
 
-Anexar jogadores ao time
 
 Criar postagens (fotos, vídeos e textos)
 
 Editar configurações da conta
 
 Criar um chat de texto para comunicação com possíveis jogadores
-
-Designar um ou mais administradores para a conta
 
 Estrutura de Perfis:
 
@@ -76,9 +65,7 @@ Exibição da porcentagem de desempenho baseada em avaliações
 
 Perfil de Time:
 
-Parte superior:
-
-Nome do administrador do time
+Parte superior
 
 Localização
 
@@ -110,7 +97,7 @@ Manutenção: Código modular para facilitar futuras atualizações e correçõe
 
 Moderação de Conteúdo: Sistema para denúncia e remoção de postagens ou usuários inadequados.
 
-Notificações: Alertas para mensagens, novas postagens e convites para times.
+
 
 Integração com APIs: Suporte a login social (Google, Facebook) e estatísticas externas de jogadores.
 
@@ -118,8 +105,3 @@ Modo Convidado: Permitir visualização parcial do conteúdo sem necessidade de 
 
 Filtros de Busca: Opção para encontrar jogadores e times por localização, esporte e nível de habilidade.
 
-Sistema de Recrutamento: Permitir que times publiquem vagas para jogadores e que jogadores possam se candidatar.
-
-Eventos e Torneios: Criar um sistema para que usuários e times organizem e participem de competições.
-
-Sistema de Conquistas/Badges: Jogadores e times podem ganhar distintivos por participação, desempenho ou reconhecimento na plataforma.
