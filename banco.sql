@@ -29,6 +29,10 @@ CREATE TABLE tb_usuario (
     id_time int, 
     foreign key (id_time) references tb_time(id_time)
 );
+ALTER TABLE tb_usuario ADD COLUMN img_usuario VARCHAR(255) DEFAULT 'default.png';
+ALTER TABLE tb_usuario ADD COLUMN sobre longtext;
+
+
 
 -- criação da tabela de postagens (MODIFICADA para aceitar tanto usuários quanto times)
 CREATE TABLE tb_postagem (
