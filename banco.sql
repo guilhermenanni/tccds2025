@@ -16,6 +16,7 @@ CREATE TABLE tb_time (
     localizacao_time varchar(100),
     img_time VARCHAR(255)
 );
+ALTER TABLE tb_time DROP COLUMN localizacao_time;
 
 -- criação da tabela de usuários
 CREATE TABLE tb_usuario (
@@ -93,6 +94,7 @@ CREATE TABLE tb_seletiva (
     data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_time) REFERENCES tb_time(id_time)
 );
+ALTER TABLE tb_seletiva ADD COLUMN cidade VARCHAR(100) NOT NULL;
 
 -- Tabela para inscrições nas seletivas
 CREATE TABLE tb_inscricao_seletiva (
@@ -133,6 +135,7 @@ CREATE INDEX idx_curtida_data ON tb_curtida (data_curtida);
 
 
 select * from tb_usuario;
+select * from tb_seletiva;
 select * from tb_time;
 
 SELECT 
