@@ -9,17 +9,11 @@ create table tb_time (
     id_time int auto_increment primary key,
     nm_time varchar(90) not null,
 	email_time varchar(100) not null,
-    time_cnpj varchar(14), 
+    time_cnpj varchar(14), -- opcional, pois pode haver times amadores (time sem cnpj pra mim é quadrilha vtmnc)
     categoria_time varchar(20) not null,
-    senha_time varchar(300),
     esporte_time varchar(90),
-	sobre_time longtext,
     localizacao_time varchar(100)
 );
-
-
-ALTER TABLE tb_time ADD COLUMN img_time VARCHAR(255);
-
 
 -- criação da tabela de usuários
 create table tb_usuario (
@@ -30,33 +24,27 @@ create table tb_usuario (
     email_usuario varchar(100) not null,
     dt_nasc_usuario date not null,
     tel_usuario varchar(12),
-    id_time int, 
+    adm_time tinyint(1), -- 0 = não é dono de time, 1 = é dono
+    id_time int, -- pode ser nulo, pois nem todo usuário pertence a um time
     foreign key (id_time) references tb_time(id_time)
 );
 
--- adicionando a fk do usuário na tabela de times
+-- adicionando a fk do usuário (dono) na tabela de times
 alter table tb_time add column id_usuario int not null;
 alter table tb_time add constraint fk_time_usuario
     foreign key (id_usuario) references tb_usuario(id_usuario);
 
 -- criação da tabela de postagens
-CREATE TABLE tb_postagem (
-    id_postagem INT AUTO_INCREMENT PRIMARY KEY,
-    texto_postagem VARCHAR(255),
-    img_postagem VARCHAR(255),
-    categoria VARCHAR(20),
-    data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    tag VARCHAR(40),
-    id_usuario INT NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario)
+create table tb_postagem (
+    id_postagem int auto_increment primary key,
+    texto_postagem varchar(255),
+    img_postagem varchar(255),
+    categoria varchar(20),
+    data_postagem timestamp default current_timestamp,
+    tag varchar(40),
+    id_usuario int not null,
+    foreign key (id_usuario) references tb_usuario(id_usuario)
 );
-
-ALTER TABLE tb_postagem
-    DROP FOREIGN KEY tb_postagem_ibfk_1,
-    DROP COLUMN id_usuario,
-    ADD COLUMN id_time INT NOT NULL,
-    ADD FOREIGN KEY (id_time) REFERENCES tb_time(id_time);
-
 
 -- criação da tabela de respostas de postagens
 create table tb_resposta_postagem (
@@ -78,4 +66,9 @@ create table tb_chat (
 
 select * from tb_usuario;
 select * from tb_time;
+
+/*
+guilherme VAI SE FUDE SEU AUTISTA DO CARALHO O BANCO TAVA TODO FUDIDO VAI TOMA NO CU
+TINHA NEM SENHA NA PARTE DO USUARIO SEU IMUNDO DO KRL O BGL NEM FUNCIONAVA MACACO
+*/
 

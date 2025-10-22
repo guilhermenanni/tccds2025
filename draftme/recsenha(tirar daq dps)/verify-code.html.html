@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- BOXICONS -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <title>Verify Code | Ludiflex</title>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="form-header">
+            <div class="titles">
+                <div class="title-login">Verify Code</div>
+            </div>
+        </div>
+        <!-- VERIFICATION FORM -->
+        <form action="check-code.php" method="POST" class="login-form" autocomplete="off">
+            <input type="hidden" name="email" value="<?php echo $_GET['email']; ?>">
+            <div class="input-box">
+                <input type="text" class="input-field" id="verification-code" name="code" required>
+                <label for="verification-code" class="label">Verification Code</label>
+                <i class='bx bx-lock-alt icon'></i>
+            </div>
+            <div class="input-box">
+                <button class="btn-submit" type="submit">Verify <i class='bx bx-check'></i></button>
+            </div>
+            <div class="switch-form">
+                <span>Didn't receive code? <a href="#" id="resend-code">Resend</a></span>
+            </div>
+        </form>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+        document.getElementById('resend-code').addEventListener('click', function(e) {
+            e.preventDefault();
+            // Implement resend logic here
+            alert('Verification code has been resent!');
+        });
+    </script>
+</body>
+</html>

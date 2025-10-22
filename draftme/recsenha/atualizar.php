@@ -1,5 +1,5 @@
 <?php
-include_once('conex.php');
+include_once('../conex.php');
 
 $email = $_POST['email'];
 $new_password = $_POST['new_password'];
@@ -30,4 +30,3 @@ $conex->prepare("DELETE FROM tb_recuperacao WHERE email = ?")->bind_param("s", $
 header("Location: index.php?senha_alterada=true");
 exit();
 ?>
-  

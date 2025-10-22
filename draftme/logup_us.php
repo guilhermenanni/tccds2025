@@ -107,6 +107,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="input-box">
                 <input type="password" name="senha" class="input-field" required>
                 <label class="label">Senha</label>
+                <i class='bx bx-lock-alt icon'></i>
             </div>
 
             <div class="form-cols">
@@ -126,6 +127,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <br>
         </form>
     </div>
-    <script src="js/script.js"></script>
+
 </body>
 </html>

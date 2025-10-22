@@ -1,0 +1,12 @@
+corrigir o pesquisa de perfil, 
+ferramenta de pesquisa, página de perfil, 
+estilizar melhor o site(por favor),
+troca para o supabase e por fim organização das pastas e páginas do site 
+
+
+-- to pensando em adicionar a cidade na postagem e a localização fica com no caso a rua né
+pq sla um time pode mudar de cidade, ae eu tiro tbm o localização do time 
+kkkkkkkkkkkk
+
+
+https://base44.com/  <- app ia kkkkk

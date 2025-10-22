@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Termos de Contrato</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+        }
+        .terms-container {
+            background-color: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            max-width: 700px;
+            margin: 0 auto 30px auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            height: 400px;
+            overflow-y: scroll;
+        }
+        button {
+            display: block;
+            margin: 0 auto;
+            padding: 15px 40px;
+            font-size: 16px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            max-width: 700px;
+            margin: 20px auto;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Termos de Contrato</h1>
+
+    <div class="terms-container">
+        <p>
+            Bem-vindo ao nosso serviço. Ao utilizar este site, você concorda com os seguintes termos e condições:
+        </p>
+        <p>
+            1. Coleta de Dados: Este site coleta informações pessoais como CPF, CNPJ, localização e outros dados necessários para o funcionamento do serviço.
+        </p>
+        <p>
+            2. Uso dos Dados: As informações coletadas serão utilizadas apenas para finalidades relacionadas à prestação dos nossos serviços e não serão compartilhadas com terceiros sem seu consentimento.
+        </p>
+        <p>
+            3. Segurança: Nos comprometemos a proteger seus dados pessoais com as melhores práticas de segurança.
+        </p>
+        <p>
+            4. Responsabilidades: Você é responsável pela veracidade das informações fornecidas.
+        </p>
+        <p>
+            5. Aceitação: Ao clicar no botão "Aceito os Termos", você concorda com todas as cláusulas acima e autoriza o uso dos seus dados conforme descrito.
+        </p>
+        <p>
+            Caso tenha dúvidas, entre em contato conosco antes de prosseguir.
+        </p>
+    </div>
+
+    <div class="info">
+        Os dados coletados, como CPF, CNPJ e localização, são necessários para garantir a segurança e conformidade do serviço.
+    </div>
+
+    <button id="acceptButton">Aceito os Termos</button>
+
+    <script>
+        document.getElementById('acceptButton').addEventListener('click', function() {
+            alert('Obrigado por aceitar os termos. Você será redirecionado para a página inicial.');
+            
+            // Redireciona para o index após 1 segundo
+            setTimeout(function() {
+                window.location.href = 'index.php'; 
+            }, 1000);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 <?php
-include_once('conex.php');
+include_once('../conex.php');
 
 $email = $_POST['email'];
 $codigo = rand(100000, 999999); // código de 6 dígitos
