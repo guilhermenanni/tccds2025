@@ -12,17 +12,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $data_nascimento = mysqli_real_escape_string($conex, $_POST['data_nascimento']);
         $telefone = mysqli_real_escape_string($conex, $_POST['telefone']);
         $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
+        $sobre = isset($_POST['sobre']) ? mysqli_real_escape_string($conex, $_POST['sobre']) : null;
 
-    
         $query_verifica = "SELECT * FROM tb_usuario WHERE email_usuario = '$email'";
         $result_verifica = $conex->query($query_verifica);
 
         if ($result_verifica->num_rows > 0) {
             $msg = "<p style='color:red;'>E-mail já cadastrado.</p>";
         } else {
-            // Inserir novo usuário no banco de dados
-            $sql = "INSERT INTO tb_usuario (nm_usuario, email_usuario, cpf_usuario, dt_nasc_usuario, tel_usuario, senha_usuario, adm_time)
-                    VALUES ('$nome', '$email', '$cpf', '$data_nascimento', '$telefone', '$senha', 0)";
+            $sql = "INSERT INTO tb_usuario (nm_usuario, email_usuario, cpf_usuario, dt_nasc_usuario, tel_usuario, senha_usuario, sobre)
+                    VALUES ('$nome', '$email', '$cpf', '$data_nascimento', '$telefone', '$senha', " . ($sobre ? "'$sobre'" : "NULL") . ")";
 
             if ($conex->query($sql) === TRUE) {
                 $msg = "<p style='color:green;'>Usuário cadastrado com sucesso!</p>";
@@ -50,16 +49,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 .wrapper {
     position: relative;
     width: 430px;
-    height: 500px;
+    height: 550px;
     background-color: var(--white-color);
     border-radius: 15px;
     padding: 120px 32px 64px;
     border: 1px solid var(--primary-color);
     box-shadow: 0 8px 15px var(--shadow-color);
     transition: var(--transition-3s);
-    overflow-y: auto;  /* Permite rolagem vertical */
+    overflow-y: auto;
 }
-
+textarea.input-field {
+    min-height: 80px;
+    resize: vertical;
+    padding-top: 15px;
+}
     </style>
 </head>
 <body>
@@ -87,19 +90,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
 
             <div class="input-box">
-                <input type="text" name="cpf" class="input-field" maxlength="11" required>
+                <input type="text" name="cpf" class="input-field" maxlength="11" 
+                    pattern="\d{11}" inputmode="numeric" required 
+                    title="Digite apenas números (11 dígitos)">
                 <label class="label">CPF</label>
                 <i class='bx bx-id-card icon'></i>
             </div>
 
             <div class="input-box">
-                <input type="date" name="data_nascimento" class="input-field" required>
+                <input type="date" name="data_nascimento" class="input-field" id="data_nascimento" required>
                 <label class="label"></label>
-
+                <i class='bx bx-calendar icon'></i>
             </div>
 
             <div class="input-box">
-                <input type="tel" name="telefone" class="input-field" maxlength="15" required>
+                <input type="tel" name="telefone" class="input-field" maxlength="15"
+                    pattern="\d{10,15}" inputmode="numeric" required 
+                    title="Digite apenas números (mínimo 10, máximo 15)">
                 <label class="label">Telefone</label>
                 <i class='bx bx-phone icon'></i>
             </div>
@@ -107,7 +114,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="input-box">
                 <input type="password" name="senha" class="input-field" required>
                 <label class="label">Senha</label>
-                <i class='bx bx-lock-alt icon'></i>
+            </div>
+
+            <div class="input-box">
+                <textarea name="sobre" class="input-field" placeholder=" "></textarea>
+                <label class="label">Sobre você (Opcional)</label>
+                <i class='bx bx-edit icon'></i>
             </div>
 
             <div class="form-cols">
@@ -127,6 +139,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <br>
         </form>
     </div>
+
+    <script src="js/script.js"></script>
+
+    <script>
+// CPF - permite apenas números
+document.querySelector('input[name="cpf"]').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\D/g, '');
+});
+
+// Telefone - permite apenas números
+document.querySelector('input[name="telefone"]').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\D/g, '');
+});
+
+// Ajustar altura do textarea automaticamente
+document.querySelector('textarea[name="sobre"]').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+
+// Limitar data de nascimento para até 30 anos atrás
+const dataInput = document.getElementById('data_nascimento');
+const hoje = new Date();
+const maxDate = hoje.toISOString().split('T')[0];
+const minDate = new Date();
+minDate.setFullYear(minDate.getFullYear() - 30);
+dataInput.max = maxDate;
+dataInput.min = minDate.toISOString().split('T')[0];
+
+// Mensagem personalizada se a data for inválida
+dataInput.addEventListener('change', function() {
+    const dataSelecionada = new Date(this.value);
+    if (dataSelecionada < minDate || dataSelecionada > hoje) {
+        alert("A data de nascimento deve estar entre " + 
+              minDate.toLocaleDateString('pt-BR') + " e " + 
+              hoje.toLocaleDateString('pt-BR') + 
+              " (até 30 anos de idade).");
+        this.value = "";
+    }
+});
+    </script>
 
 </body>
 </html>

@@ -1,8 +1,18 @@
 <?php
 session_start();
 if (!isset($_SESSION['id'])) {
-    header("Location: login.php");
+    header("Location: index.php");
     exit;
+}
+
+// Função para formatar data no padrão brasileiro
+function formatarDataBr($data) {
+    return date('d/m/Y H:i', strtotime($data));
+}
+
+// Função para formatar data sem hora
+function formatarDataSemHora($data) {
+    return date('d/m/Y', strtotime($data));
 }
 
 include('conex.php');
@@ -13,7 +23,12 @@ $sql = "SELECT img_time, nm_time, email_time, time_cnpj, sobre_time
         FROM tb_time WHERE id_time = $id_time";
 $res = $conex->query($sql);
 $dados = $res->fetch_assoc();
-$imagem = $dados['img_time'] ?? 'default.png'; 
+
+// Verificar se a imagem existe e usar default se não existir
+$imagem = 'default.png';
+if (!empty($dados['img_time']) && file_exists('uploads/' . $dados['img_time'])) {
+    $imagem = $dados['img_time'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -139,8 +154,11 @@ $imagem = $dados['img_time'] ?? 'default.png';
         .time-info {
             flex: 1;
         }
-        .time-img {
-            margin-left: 20px;
+        .time-img img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
         }
         .btn {
             padding: 8px 16px;
@@ -347,6 +365,19 @@ $imagem = $dados['img_time'] ?? 'default.png';
             padding: 15px;
             border-top: 1px solid #ddd;
         }
+        /* Novos estilos para fotos de perfil */
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -478,7 +509,7 @@ $imagem = $dados['img_time'] ?? 'default.png';
 
                 </div>
                 <div class="time-img">
-                    <img src="uploads/<?php echo htmlspecialchars($imagem); ?>" alt="Imagem do time" width="150">
+                    <img src="uploads/<?php echo htmlspecialchars($imagem); ?>" alt="Imagem do time">
                 </div>
             </div>
 
@@ -491,6 +522,16 @@ $imagem = $dados['img_time'] ?? 'default.png';
             if ($result_posts->num_rows > 0) {
                 while ($post = $result_posts->fetch_assoc()) {
                     echo "<div class='post-container'>";
+                    
+                    // Header da postagem com foto
+                    echo "<div class='post-header'>";
+                    echo "<img src='uploads/" . htmlspecialchars($imagem) . "' alt='Avatar' class='post-avatar'>";
+                    echo "<div>";
+                    echo "<strong><a href='perfil_tm.php?id_time=" . $id_time . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($dados['nm_time']) . "</a> (time)</strong><br>";
+                    echo "<small>" . formatarDataBr($post['data_postagem']) . "</small>";
+                    echo "</div>";
+                    echo "</div>";
+                    
                     echo "<strong>Categoria:</strong> " . htmlspecialchars($post['categoria']) . "<br>";
                     echo "<strong>Tag:</strong> " . htmlspecialchars($post['tag']) . "<br>";
                     echo "<p>" . nl2br(htmlspecialchars($post['texto_postagem'])) . "</p>";
@@ -499,7 +540,7 @@ $imagem = $dados['img_time'] ?? 'default.png';
                         echo "<img src='uploads/" . htmlspecialchars($post['img_postagem']) . "' width='250'><br>";
                     }
 
-                    echo "<small>Postado em: " . $post['data_postagem'] . "</small>";
+                    echo "<small>Postado em: " . formatarDataBr($post['data_postagem']) . "</small>";
                     
                     // Botão de curtir e contador
                     echo "<div class='curtida-container'>";
@@ -532,6 +573,7 @@ $imagem = $dados['img_time'] ?? 'default.png';
                     $id_postagem = $post['id_postagem'];
                     $sql_comentarios = "SELECT c.*, 
                                        COALESCE(u.nm_usuario, t.nm_time) as autor,
+                                       COALESCE(u.img_usuario, t.img_time) as avatar,
                                        CASE WHEN c.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
                                       FROM tb_comentario c 
                                       LEFT JOIN tb_usuario u ON c.id_usuario = u.id_usuario 
@@ -544,10 +586,16 @@ $imagem = $dados['img_time'] ?? 'default.png';
                         echo "<div class='comentarios-container'>";
                         echo "<h4>Comentários:</h4>";
                         while ($comentario = $result_comentarios->fetch_assoc()) {
+                            $avatar_comentario = $comentario['avatar'] ?? 'default.png';
                             echo "<div class='comentario'>";
-                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . "):</strong> ";
+                            echo "<div class='post-header'>";
+                            echo "<img src='uploads/" . htmlspecialchars($avatar_comentario) . "' alt='Avatar' class='post-avatar'>";
+                            echo "<div>";
+                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . ")</strong><br>";
                             echo htmlspecialchars($comentario['texto_comentario']);
-                            echo "<br><small>Em: " . $comentario['data_comentario'] . "</small>";
+                            echo "<br><small>Em: " . formatarDataBr($comentario['data_comentario']) . "</small>";
+                            echo "</div>";
+                            echo "</div>";
                             echo "</div>";
                         }
                         echo "</div>";
@@ -579,7 +627,7 @@ $imagem = $dados['img_time'] ?? 'default.png';
             </a>
         </div>
         <div class="time-img">
-            <img src="uploads/<?php echo htmlspecialchars($imagem); ?>" alt="Imagem do time" width="150">
+            <img src="uploads/<?php echo htmlspecialchars($imagem); ?>" alt="Imagem do time">
         </div>
     </div>
 
@@ -606,10 +654,10 @@ if ($result_seletivas->num_rows > 0) {
         echo "<h3>" . htmlspecialchars($seletiva['titulo']) . "</h3>";
         echo "<p><strong>Local:</strong> " . htmlspecialchars($seletiva['localizacao']) . "</p>";
         echo "<p><strong>Cidade:</strong> " . htmlspecialchars($seletiva['cidade']) . "</p>";
-        echo "<p><strong>Data:</strong> " . htmlspecialchars($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
+        echo "<p><strong>Data:</strong> " . formatarDataSemHora($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
         echo "<p><strong>Categoria:</strong> " . htmlspecialchars($seletiva['categoria']) . " - " . htmlspecialchars($seletiva['subcategoria']) . "</p>";
         echo "<p><strong>Sobre:</strong> " . nl2br(htmlspecialchars($seletiva['sobre'])) . "</p>";
-        echo "<small>Criada em: " . $seletiva['data_postagem'] . "</small>";
+        echo "<small>Criada em: " . formatarDataBr($seletiva['data_postagem']) . "</small>";
         
         echo "<div style='margin-top: 15px;'>";
         echo "<button class='btn-detalhes' onclick='abrirModal(" . $seletiva['id_seletiva'] . ")'>Ver Inscritos</button>";
@@ -665,7 +713,11 @@ if ($result_seletivas->num_rows > 0) {
             // Query base para postagens gerais
             $sql_posts_gerais = "SELECT p.*, 
                                 COALESCE(u.nm_usuario, t.nm_time) as autor,
-                                CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
+                                COALESCE(u.id_usuario, t.id_time) as id_autor,
+                                COALESCE(u.img_usuario, t.img_time) as avatar,
+                                CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor,
+                                p.id_usuario,
+                                p.id_time
                                FROM tb_postagem p
                                LEFT JOIN tb_usuario u ON p.id_usuario = u.id_usuario 
                                LEFT JOIN tb_time t ON p.id_time = t.id_time 
@@ -699,7 +751,26 @@ if ($result_seletivas->num_rows > 0) {
             if ($total_resultados > 0) {
                 while ($post = $result_posts_gerais->fetch_assoc()) {
                     echo "<div class='post-container'>";
-                    echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    
+                    // Header da postagem com foto e link para perfil
+                    echo "<div class='post-header'>";
+                    $avatar = $post['avatar'] ?? 'default.png';
+                    echo "<img src='uploads/" . htmlspecialchars($avatar) . "' alt='Avatar' class='post-avatar'>";
+                    echo "<div>";
+                    
+                    // Link para o perfil
+                    if ($post['tipo_autor'] == 'usuário' && $post['id_usuario']) {
+                        echo "<strong><a href='perfil_tm.php?id_usuario=" . $post['id_usuario'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else if ($post['tipo_autor'] == 'time' && $post['id_time']) {
+                        echo "<strong><a href='perfil_tm.php?id_time=" . $post['id_time'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else {
+                        echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    }
+                    
+                    echo "<small>" . formatarDataBr($post['data_postagem']) . "</small>";
+                    echo "</div>";
+                    echo "</div>";
+                    
                     echo "<strong>Categoria:</strong> " . htmlspecialchars($post['categoria']) . "<br>";
                     echo "<strong>Tag:</strong> " . htmlspecialchars($post['tag']) . "<br>";
                     echo "<p>" . nl2br(htmlspecialchars($post['texto_postagem'])) . "</p>";
@@ -708,7 +779,7 @@ if ($result_seletivas->num_rows > 0) {
                         echo "<img src='uploads/" . htmlspecialchars($post['img_postagem']) . "' width='250'><br>";
                     }
 
-                    echo "<small>Postado em: " . $post['data_postagem'] . "</small>";
+                    echo "<small>Postado em: " . formatarDataBr($post['data_postagem']) . "</small>";
                     
                     // Botão de curtir e contador
                     echo "<div class='curtida-container'>";
@@ -735,6 +806,7 @@ if ($result_seletivas->num_rows > 0) {
                     $id_postagem = $post['id_postagem'];
                     $sql_comentarios = "SELECT c.*, 
                                        COALESCE(u.nm_usuario, t.nm_time) as autor,
+                                       COALESCE(u.img_usuario, t.img_time) as avatar,
                                        CASE WHEN c.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
                                       FROM tb_comentario c 
                                       LEFT JOIN tb_usuario u ON c.id_usuario = u.id_usuario 
@@ -747,10 +819,16 @@ if ($result_seletivas->num_rows > 0) {
                         echo "<div class='comentarios-container'>";
                         echo "<h4>Comentários:</h4>";
                         while ($comentario = $result_comentarios->fetch_assoc()) {
+                            $avatar_comentario = $comentario['avatar'] ?? 'default.png';
                             echo "<div class='comentario'>";
-                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . "):</strong> ";
+                            echo "<div class='post-header'>";
+                            echo "<img src='uploads/" . htmlspecialchars($avatar_comentario) . "' alt='Avatar' class='post-avatar'>";
+                            echo "<div>";
+                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . ")</strong><br>";
                             echo htmlspecialchars($comentario['texto_comentario']);
-                            echo "<br><small>Em: " . $comentario['data_comentario'] . "</small>";
+                            echo "<br><small>Em: " . formatarDataBr($comentario['data_comentario']) . "</small>";
+                            echo "</div>";
+                            echo "</div>";
                             echo "</div>";
                         }
                         echo "</div>";
@@ -761,7 +839,7 @@ if ($result_seletivas->num_rows > 0) {
                 if ($pesquisa_ativa) {
                     echo "<p>Nenhuma postagem encontrada para \"<em>" . htmlspecialchars($termo_pesquisa) . "</em>\".</p>";
                 } else {
-                    echo "<p>Ainda não existem postagens gerais.</p>";
+                    echo "<p>Ainda não existem postagens.</p>";
                 }
             }
             
@@ -878,7 +956,7 @@ if ($result_seletivas->num_rows > 0) {
     }
     
     // Query base para seletivas disponíveis
-    $sql_seletivas_gerais = "SELECT s.*, t.nm_time 
+    $sql_seletivas_gerais = "SELECT s.*, t.nm_time, t.img_time 
                              FROM tb_seletiva s
                              INNER JOIN tb_time t ON s.id_time = t.id_time
                              WHERE s.data_seletiva >= CURDATE()";
@@ -949,13 +1027,21 @@ if ($result_seletivas->num_rows > 0) {
         while ($seletiva = $result_seletivas_gerais->fetch_assoc()) {
             echo "<div class='seletiva-container'>";
             echo "<h3>" . htmlspecialchars($seletiva['titulo']) . "</h3>";
-            echo "<p><strong>Time:</strong> " . htmlspecialchars($seletiva['nm_time']) . "</p>";
+            
+            // Header com foto do time
+            echo "<div class='post-header'>";
+            echo "<img src='uploads/" . htmlspecialchars($seletiva['img_time'] ?? 'default.png') . "' alt='Avatar' class='post-avatar'>";
+            echo "<div>";
+            echo "<strong><a href='perfil_tm.php?id_time=" . $seletiva['id_time'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($seletiva['nm_time']) . "</a> (time)</strong><br>";
+            echo "</div>";
+            echo "</div>";
+            
             echo "<p><strong>Local:</strong> " . htmlspecialchars($seletiva['localizacao']) . "</p>";
             echo "<p><strong>Cidade:</strong> " . htmlspecialchars($seletiva['cidade']) . "</p>";
-            echo "<p><strong>Data:</strong> " . htmlspecialchars($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
+            echo "<p><strong>Data:</strong> " . formatarDataSemHora($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
             echo "<p><strong>Categoria:</strong> " . htmlspecialchars($seletiva['categoria']) . " - " . htmlspecialchars($seletiva['subcategoria']) . "</p>";
             echo "<p><strong>Sobre:</strong> " . nl2br(htmlspecialchars($seletiva['sobre'])) . "</p>";
-            echo "<small>Postada em: " . $seletiva['data_postagem'] . "</small>";
+            echo "<small>Postada em: " . formatarDataBr($seletiva['data_postagem']) . "</small>";
             echo "</div>";
         }
     } else {
@@ -977,7 +1063,11 @@ if ($result_seletivas->num_rows > 0) {
             <?php
             $sql_curtidas = "SELECT p.*, 
                             COALESCE(u.nm_usuario, t.nm_time) as autor,
-                            CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
+                            COALESCE(u.id_usuario, t.id_time) as id_autor,
+                            COALESCE(u.img_usuario, t.img_time) as avatar,
+                            CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor,
+                            p.id_usuario,
+                            p.id_time
                            FROM tb_postagem p
                            LEFT JOIN tb_usuario u ON p.id_usuario = u.id_usuario 
                            LEFT JOIN tb_time t ON p.id_time = t.id_time 
@@ -989,7 +1079,26 @@ if ($result_seletivas->num_rows > 0) {
             if ($result_curtidas && $result_curtidas->num_rows > 0) {
                 while ($post = $result_curtidas->fetch_assoc()) {
                     echo "<div class='post-container'>";
-                    echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    
+                    // Header da postagem com foto e link para perfil
+                    echo "<div class='post-header'>";
+                    $avatar = $post['avatar'] ?? 'default.png';
+                    echo "<img src='uploads/" . htmlspecialchars($avatar) . "' alt='Avatar' class='post-avatar'>";
+                    echo "<div>";
+                    
+                    // Link para o perfil
+                    if ($post['tipo_autor'] == 'usuário' && $post['id_usuario']) {
+                        echo "<strong><a href='perfil_tm.php?id_usuario=" . $post['id_usuario'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else if ($post['tipo_autor'] == 'time' && $post['id_time']) {
+                        echo "<strong><a href='perfil_tm.php?id_time=" . $post['id_time'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else {
+                        echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    }
+                    
+                    echo "<small>" . formatarDataBr($post['data_postagem']) . "</small>";
+                    echo "</div>";
+                    echo "</div>";
+                    
                     echo "<strong>Categoria:</strong> " . htmlspecialchars($post['categoria']) . "<br>";
                     echo "<strong>Tag:</strong> " . htmlspecialchars($post['tag']) . "<br>";
                     echo "<p>" . nl2br(htmlspecialchars($post['texto_postagem'])) . "</p>";
@@ -998,7 +1107,7 @@ if ($result_seletivas->num_rows > 0) {
                         echo "<img src='uploads/" . htmlspecialchars($post['img_postagem']) . "' width='250'><br>";
                     }
 
-                    echo "<small>Postado em: " . $post['data_postagem'] . "</small>";
+                    echo "<small>Postado em: " . formatarDataBr($post['data_postagem']) . "</small>";
                     
                     // Botão de curtir (já estará preenchido)
                     echo "<div class='curtida-container'>";
@@ -1021,6 +1130,7 @@ if ($result_seletivas->num_rows > 0) {
             ?>
         </div>
 
+        <!-- BOTÃO DE SAIR ADICIONADO DE VOLTA -->
         <div style="margin-top: 20px;">
             <a href="logout.php" class="btn btn-danger">Sair da Conta</a>
         </div>

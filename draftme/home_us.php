@@ -1,8 +1,18 @@
 <?php
 session_start();
 if (!isset($_SESSION['id'])) {
-    header("Location: login_us.php");
+    header("Location: index.php");
     exit;
+}
+
+// Função para formatar data no padrão brasileiro
+function formatarDataBr($data) {
+    return date('d/m/Y H:i', strtotime($data));
+}
+
+// Função para formatar data sem hora
+function formatarDataSemHora($data) {
+    return date('d/m/Y', strtotime($data));
 }
 
 include('conex.php');
@@ -287,6 +297,25 @@ $dados_usuario = $res->fetch_assoc();
         .btn-excluir:hover {
             background-color: #d32f2f;
         }
+        /* Novos estilos para fotos de perfil */
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        .user-img img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
@@ -340,7 +369,7 @@ $dados_usuario = $res->fetch_assoc();
             <p><strong>Nome:</strong> <?php echo htmlspecialchars($dados_usuario['nm_usuario']); ?></p>
             <p><strong>Email:</strong> <?php echo htmlspecialchars($dados_usuario['email_usuario']); ?></p>
             <p><strong>CPF:</strong> <?php echo htmlspecialchars($dados_usuario['cpf_usuario']); ?></p>
-            <p><strong>Data de Nascimento:</strong> <?php echo htmlspecialchars($dados_usuario['dt_nasc_usuario']); ?></p>
+            <p><strong>Data de Nascimento:</strong> <?php echo formatarDataSemHora($dados_usuario['dt_nasc_usuario']); ?></p>
             <p><strong>Telefone:</strong> <?php echo htmlspecialchars($dados_usuario['tel_usuario'] ?? 'Não informado'); ?></p>
             
             <?php if (!empty($dados_usuario['sobre']) && trim($dados_usuario['sobre']) !== ''): ?>
@@ -354,7 +383,7 @@ $dados_usuario = $res->fetch_assoc();
             </a>
         </div>
         <div class="user-img">
-            <img src="uploads/<?php echo htmlspecialchars($dados_usuario['img_usuario'] ?? 'default.png'); ?>" alt="Imagem do usuário" width="150" style="border-radius: 50%;">
+            <img src="uploads/<?php echo htmlspecialchars($dados_usuario['img_usuario'] ?? 'default.png'); ?>" alt="Imagem do usuário">
         </div>
     </div>
 
@@ -368,6 +397,16 @@ $dados_usuario = $res->fetch_assoc();
             if ($result_minhas_postagens->num_rows > 0) {
                 while ($post = $result_minhas_postagens->fetch_assoc()) {
                     echo "<div class='post-container'>";
+                    
+                    // Header da postagem com foto
+                    echo "<div class='post-header'>";
+                    echo "<img src='uploads/" . htmlspecialchars($dados_usuario['img_usuario'] ?? 'default.png') . "' alt='Avatar' class='post-avatar'>";
+                    echo "<div>";
+                    echo "<strong><a href='perfil.php?id_usuario=" . $id_usuario . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($dados_usuario['nm_usuario']) . "</a> (usuário)</strong><br>";
+                    echo "<small>" . formatarDataBr($post['data_postagem']) . "</small>";
+                    echo "</div>";
+                    echo "</div>";
+                    
                     echo "<strong>Categoria:</strong> " . htmlspecialchars($post['categoria']) . "<br>";
                     echo "<strong>Tag:</strong> " . htmlspecialchars($post['tag']) . "<br>";
                     echo "<p>" . nl2br(htmlspecialchars($post['texto_postagem'])) . "</p>";
@@ -376,7 +415,7 @@ $dados_usuario = $res->fetch_assoc();
                         echo "<img src='uploads/" . htmlspecialchars($post['img_postagem']) . "' width='250'><br>";
                     }
 
-                    echo "<small>Postado em: " . $post['data_postagem'] . "</small>";
+                    echo "<small>Postado em: " . formatarDataBr($post['data_postagem']) . "</small>";
                     
                     // Botão de curtir e contador
                     echo "<div class='curtida-container'>";
@@ -400,6 +439,7 @@ $dados_usuario = $res->fetch_assoc();
                     $id_postagem = $post['id_postagem'];
                     $sql_comentarios = "SELECT c.*, 
                                        COALESCE(u.nm_usuario, t.nm_time) as autor,
+                                       COALESCE(u.img_usuario, t.img_time) as avatar,
                                        CASE WHEN c.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
                                       FROM tb_comentario c 
                                       LEFT JOIN tb_usuario u ON c.id_usuario = u.id_usuario 
@@ -412,10 +452,16 @@ $dados_usuario = $res->fetch_assoc();
                         echo "<div class='comentarios-container'>";
                         echo "<h4>Comentários:</h4>";
                         while ($comentario = $result_comentarios->fetch_assoc()) {
+                            $avatar_comentario = $comentario['avatar'] ?? 'default.png';
                             echo "<div class='comentario'>";
-                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . "):</strong> ";
+                            echo "<div class='post-header'>";
+                            echo "<img src='uploads/" . htmlspecialchars($avatar_comentario) . "' alt='Avatar' class='post-avatar'>";
+                            echo "<div>";
+                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . ")</strong><br>";
                             echo htmlspecialchars($comentario['texto_comentario']);
-                            echo "<br><small>Em: " . $comentario['data_comentario'] . "</small>";
+                            echo "<br><small>Em: " . formatarDataBr($comentario['data_comentario']) . "</small>";
+                            echo "</div>";
+                            echo "</div>";
                             echo "</div>";
                         }
                         echo "</div>";
@@ -486,6 +532,34 @@ $dados_usuario = $res->fetch_assoc();
             </div>
             
             <div class="filtro-group">
+                <label for="filtro_cidade">Cidade:</label>
+                <select id="filtro_cidade" name="filtro_cidade">
+                    <option value="">Todas as cidades</option>
+                    <option value="São Paulo" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'São Paulo') ? 'selected' : ''; ?>>São Paulo</option>
+                    <option value="Guarulhos" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Guarulhos') ? 'selected' : ''; ?>>Guarulhos</option>
+                    <option value="Campinas" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Campinas') ? 'selected' : ''; ?>>Campinas</option>
+                    <option value="São Bernardo do Campo" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'São Bernardo do Campo') ? 'selected' : ''; ?>>São Bernardo do Campo</option>
+                    <option value="Santo André" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Santo André') ? 'selected' : ''; ?>>Santo André</option>
+                    <option value="Osasco" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Osasco') ? 'selected' : ''; ?>>Osasco</option>
+                    <option value="São José dos Campos" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'São José dos Campos') ? 'selected' : ''; ?>>São José dos Campos</option>
+                    <option value="Ribeirão Preto" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Ribeirão Preto') ? 'selected' : ''; ?>>Ribeirão Preto</option>
+                    <option value="Sorocaba" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Sorocaba') ? 'selected' : ''; ?>>Sorocaba</option>
+                    <option value="Mauá" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Mauá') ? 'selected' : ''; ?>>Mauá</option>
+                    <option value="São José do Rio Preto" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'São José do Rio Preto') ? 'selected' : ''; ?>>São José do Rio Preto</option>
+                    <option value="Santos" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Santos') ? 'selected' : ''; ?>>Santos</option>
+                    <option value="Diadema" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Diadema') ? 'selected' : ''; ?>>Diadema</option>
+                    <option value="Jundiaí" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Jundiaí') ? 'selected' : ''; ?>>Jundiaí</option>
+                    <option value="Piracicaba" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Piracicaba') ? 'selected' : ''; ?>>Piracicaba</option>
+                    <option value="Carapicuíba" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Carapicuíba') ? 'selected' : ''; ?>>Carapicuíba</option>
+                    <option value="Bauru" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Bauru') ? 'selected' : ''; ?>>Bauru</option>
+                    <option value="Itaquaquecetuba" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Itaquaquecetuba') ? 'selected' : ''; ?>>Itaquaquecetuba</option>
+                    <option value="São Vicente" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'São Vicente') ? 'selected' : ''; ?>>São Vicente</option>
+                    <option value="Praia Grande" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Praia Grande') ? 'selected' : ''; ?>>Praia Grande</option>
+                    <option value="Outra" <?php echo (isset($_GET['filtro_cidade']) && $_GET['filtro_cidade'] == 'Outra') ? 'selected' : ''; ?>>Outra</option>
+                </select>
+            </div>
+            
+            <div class="filtro-group">
                 <label for="filtro_data">Data da Seletiva:</label>
                 <input type="date" id="filtro_data" name="filtro_data" value="<?php echo isset($_GET['filtro_data']) ? htmlspecialchars($_GET['filtro_data']) : ''; ?>">
             </div>
@@ -510,7 +584,7 @@ $dados_usuario = $res->fetch_assoc();
     }
     
     // Query base para seletivas disponíveis
-    $sql_seletivas = "SELECT s.*, t.nm_time 
+    $sql_seletivas = "SELECT s.*, t.nm_time, t.img_time 
                      FROM tb_seletiva s
                      INNER JOIN tb_time t ON s.id_time = t.id_time
                      WHERE s.data_seletiva >= CURDATE()";
@@ -534,6 +608,12 @@ $dados_usuario = $res->fetch_assoc();
     if (isset($_GET['filtro_categoria']) && !empty($_GET['filtro_categoria'])) {
         $filtros[] = "s.categoria = ?";
         $params[] = $_GET['filtro_categoria'];
+        $types .= "s";
+    }
+    
+    if (isset($_GET['filtro_cidade']) && !empty($_GET['filtro_cidade'])) {
+        $filtros[] = "s.cidade = ?";
+        $params[] = $_GET['filtro_cidade'];
         $types .= "s";
     }
     
@@ -575,9 +655,18 @@ $dados_usuario = $res->fetch_assoc();
         while ($seletiva = $result_seletivas->fetch_assoc()) {
             echo "<div class='seletiva-container'>";
             echo "<h3>" . htmlspecialchars($seletiva['titulo']) . "</h3>";
-            echo "<p><strong>Time:</strong> " . htmlspecialchars($seletiva['nm_time']) . "</p>";
+            
+            // Header com foto do time
+            echo "<div class='post-header'>";
+            echo "<img src='uploads/" . htmlspecialchars($seletiva['img_time'] ?? 'default.png') . "' alt='Avatar' class='post-avatar'>";
+            echo "<div>";
+            echo "<strong><a href='perfil.php?id_time=" . $seletiva['id_time'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($seletiva['nm_time']) . "</a> (time)</strong><br>";
+            echo "</div>";
+            echo "</div>";
+            
             echo "<p><strong>Local:</strong> " . htmlspecialchars($seletiva['localizacao']) . "</p>";
-            echo "<p><strong>Data:</strong> " . htmlspecialchars($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
+            echo "<p><strong>Cidade:</strong> " . htmlspecialchars($seletiva['cidade']) . "</p>";
+            echo "<p><strong>Data:</strong> " . formatarDataSemHora($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
             echo "<p><strong>Categoria:</strong> " . htmlspecialchars($seletiva['categoria']) . " - " . htmlspecialchars($seletiva['subcategoria']) . "</p>";
             echo "<p><strong>Sobre:</strong> " . nl2br(htmlspecialchars($seletiva['sobre'])) . "</p>";
             
@@ -615,7 +704,7 @@ $dados_usuario = $res->fetch_assoc();
         <div id="minhas-seletivas" class="aba-conteudo">
             <h2>Minhas Seletivas Inscritas</h2>
             <?php
-            $sql_minhas_seletivas = "SELECT s.*, t.nm_time, i.data_inscricao, i.status 
+            $sql_minhas_seletivas = "SELECT s.*, t.nm_time, t.img_time, i.data_inscricao, i.status 
                                    FROM tb_inscricao_seletiva i
                                    INNER JOIN tb_seletiva s ON i.id_seletiva = s.id_seletiva
                                    INNER JOIN tb_time t ON s.id_time = t.id_time
@@ -627,15 +716,23 @@ $dados_usuario = $res->fetch_assoc();
                 while ($seletiva = $result_minhas_seletivas->fetch_assoc()) {
                     echo "<div class='seletiva-container'>";
                     echo "<h3>" . htmlspecialchars($seletiva['titulo']) . "</h3>";
-                    echo "<p><strong>Time:</strong> " . htmlspecialchars($seletiva['nm_time']) . "</p>";
+                    
+                    // Header com foto do time
+                    echo "<div class='post-header'>";
+                    echo "<img src='uploads/" . htmlspecialchars($seletiva['img_time'] ?? 'default.png') . "' alt='Avatar' class='post-avatar'>";
+                    echo "<div>";
+                    echo "<strong><a href='perfil.php?id_time=" . $seletiva['id_time'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($seletiva['nm_time']) . "</a> (time)</strong><br>";
+                    echo "</div>";
+                    echo "</div>";
+                    
                     echo "<p><strong>Local:</strong> " . htmlspecialchars($seletiva['localizacao']) . "</p>";
-                    echo "<p><strong>Data:</strong> " . htmlspecialchars($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
+                    echo "<p><strong>Data:</strong> " . formatarDataSemHora($seletiva['data_seletiva']) . " às " . htmlspecialchars($seletiva['hora']) . "</p>";
                     echo "<p><strong>Categoria:</strong> " . htmlspecialchars($seletiva['categoria']) . " - " . htmlspecialchars($seletiva['subcategoria']) . "</p>";
                     echo "<p><strong>Sobre:</strong> " . nl2br(htmlspecialchars($seletiva['sobre'])) . "</p>";
                     echo "<p><strong>Status da Inscrição:</strong> <span style='color:";
                     echo $seletiva['status'] == 'confirmada' ? 'green' : ($seletiva['status'] == 'rejeitada' ? 'red' : 'orange');
                     echo "'>" . ucfirst($seletiva['status']) . "</span></p>";
-                    echo "<p><strong>Data da Inscrição:</strong> " . $seletiva['data_inscricao'] . "</p>";
+                    echo "<p><strong>Data da Inscrição:</strong> " . formatarDataBr($seletiva['data_inscricao']) . "</p>";
                     echo "</div>";
                 }
             } else {
@@ -680,7 +777,11 @@ $dados_usuario = $res->fetch_assoc();
             // Query base para postagens gerais
             $sql_posts_gerais = "SELECT p.*, 
                                 COALESCE(u.nm_usuario, t.nm_time) as autor,
-                                CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
+                                COALESCE(u.id_usuario, t.id_time) as id_autor,
+                                COALESCE(u.img_usuario, t.img_time) as avatar,
+                                CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor,
+                                p.id_usuario,
+                                p.id_time
                                FROM tb_postagem p
                                LEFT JOIN tb_usuario u ON p.id_usuario = u.id_usuario 
                                LEFT JOIN tb_time t ON p.id_time = t.id_time 
@@ -714,7 +815,26 @@ $dados_usuario = $res->fetch_assoc();
             if ($total_resultados > 0) {
                 while ($post = $result_posts_gerais->fetch_assoc()) {
                     echo "<div class='post-container'>";
-                    echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    
+                    // Header da postagem com foto e link para perfil
+                    echo "<div class='post-header'>";
+                    $avatar = $post['avatar'] ?? 'default.png';
+                    echo "<img src='uploads/" . htmlspecialchars($avatar) . "' alt='Avatar' class='post-avatar'>";
+                    echo "<div>";
+                    
+                    // Link para o perfil
+                    if ($post['tipo_autor'] == 'usuário' && $post['id_usuario']) {
+                        echo "<strong><a href='perfil.php?id_usuario=" . $post['id_usuario'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else if ($post['tipo_autor'] == 'time' && $post['id_time']) {
+                        echo "<strong><a href='perfil.php?id_time=" . $post['id_time'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else {
+                        echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    }
+                    
+                    echo "<small>" . formatarDataBr($post['data_postagem']) . "</small>";
+                    echo "</div>";
+                    echo "</div>";
+                    
                     echo "<strong>Categoria:</strong> " . htmlspecialchars($post['categoria']) . "<br>";
                     echo "<strong>Tag:</strong> " . htmlspecialchars($post['tag']) . "<br>";
                     echo "<p>" . nl2br(htmlspecialchars($post['texto_postagem'])) . "</p>";
@@ -723,7 +843,7 @@ $dados_usuario = $res->fetch_assoc();
                         echo "<img src='uploads/" . htmlspecialchars($post['img_postagem']) . "' width='250'><br>";
                     }
 
-                    echo "<small>Postado em: " . $post['data_postagem'] . "</small>";
+                    echo "<small>Postado em: " . formatarDataBr($post['data_postagem']) . "</small>";
                     
                     // Botão de curtir e contador
                     echo "<div class='curtida-container'>";
@@ -750,6 +870,7 @@ $dados_usuario = $res->fetch_assoc();
                     $id_postagem = $post['id_postagem'];
                     $sql_comentarios = "SELECT c.*, 
                                        COALESCE(u.nm_usuario, t.nm_time) as autor,
+                                       COALESCE(u.img_usuario, t.img_time) as avatar,
                                        CASE WHEN c.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
                                       FROM tb_comentario c 
                                       LEFT JOIN tb_usuario u ON c.id_usuario = u.id_usuario 
@@ -762,10 +883,16 @@ $dados_usuario = $res->fetch_assoc();
                         echo "<div class='comentarios-container'>";
                         echo "<h4>Comentários:</h4>";
                         while ($comentario = $result_comentarios->fetch_assoc()) {
+                            $avatar_comentario = $comentario['avatar'] ?? 'default.png';
                             echo "<div class='comentario'>";
-                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . "):</strong> ";
+                            echo "<div class='post-header'>";
+                            echo "<img src='uploads/" . htmlspecialchars($avatar_comentario) . "' alt='Avatar' class='post-avatar'>";
+                            echo "<div>";
+                            echo "<strong>" . htmlspecialchars($comentario['autor']) . " (" . $comentario['tipo_autor'] . ")</strong><br>";
                             echo htmlspecialchars($comentario['texto_comentario']);
-                            echo "<br><small>Em: " . $comentario['data_comentario'] . "</small>";
+                            echo "<br><small>Em: " . formatarDataBr($comentario['data_comentario']) . "</small>";
+                            echo "</div>";
+                            echo "</div>";
                             echo "</div>";
                         }
                         echo "</div>";
@@ -791,7 +918,11 @@ $dados_usuario = $res->fetch_assoc();
             <?php
             $sql_curtidas = "SELECT p.*, 
                             COALESCE(u.nm_usuario, t.nm_time) as autor,
-                            CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor
+                            COALESCE(u.id_usuario, t.id_time) as id_autor,
+                            COALESCE(u.img_usuario, t.img_time) as avatar,
+                            CASE WHEN p.id_usuario IS NOT NULL THEN 'usuário' ELSE 'time' END as tipo_autor,
+                            p.id_usuario,
+                            p.id_time
                            FROM tb_postagem p
                            LEFT JOIN tb_usuario u ON p.id_usuario = u.id_usuario 
                            LEFT JOIN tb_time t ON p.id_time = t.id_time 
@@ -803,7 +934,26 @@ $dados_usuario = $res->fetch_assoc();
             if ($result_curtidas && $result_curtidas->num_rows > 0) {
                 while ($post = $result_curtidas->fetch_assoc()) {
                     echo "<div class='post-container'>";
-                    echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    
+                    // Header da postagem com foto e link para perfil
+                    echo "<div class='post-header'>";
+                    $avatar = $post['avatar'] ?? 'default.png';
+                    echo "<img src='uploads/" . htmlspecialchars($avatar) . "' alt='Avatar' class='post-avatar'>";
+                    echo "<div>";
+                    
+                    // Link para o perfil
+                    if ($post['tipo_autor'] == 'usuário' && $post['id_usuario']) {
+                        echo "<strong><a href='perfil.php?id_usuario=" . $post['id_usuario'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else if ($post['tipo_autor'] == 'time' && $post['id_time']) {
+                        echo "<strong><a href='perfil.php?id_time=" . $post['id_time'] . "' style='color: #333; text-decoration: none;'>" . htmlspecialchars($post['autor']) . "</a> (" . $post['tipo_autor'] . ")</strong><br>";
+                    } else {
+                        echo "<strong>" . htmlspecialchars($post['autor']) . " (" . $post['tipo_autor'] . ")</strong><br>";
+                    }
+                    
+                    echo "<small>" . formatarDataBr($post['data_postagem']) . "</small>";
+                    echo "</div>";
+                    echo "</div>";
+                    
                     echo "<strong>Categoria:</strong> " . htmlspecialchars($post['categoria']) . "<br>";
                     echo "<strong>Tag:</strong> " . htmlspecialchars($post['tag']) . "<br>";
                     echo "<p>" . nl2br(htmlspecialchars($post['texto_postagem'])) . "</p>";
@@ -812,7 +962,7 @@ $dados_usuario = $res->fetch_assoc();
                         echo "<img src='uploads/" . htmlspecialchars($post['img_postagem']) . "' width='250'><br>";
                     }
 
-                    echo "<small>Postado em: " . $post['data_postagem'] . "</small>";
+                    echo "<small>Postado em: " . formatarDataBr($post['data_postagem']) . "</small>";
                     
                     // Botão de curtir (já estará preenchido)
                     echo "<div class='curtida-container'>";
@@ -928,6 +1078,7 @@ $dados_usuario = $res->fetch_assoc();
             const urlParams = new URLSearchParams(window.location.search);
             const filtroSubcategoria = urlParams.get('filtro_subcategoria');
             const filtroCategoria = urlParams.get('filtro_categoria');
+            const filtroCidade = urlParams.get('filtro_cidade');
             const filtroData = urlParams.get('filtro_data');
             const pesquisa = urlParams.get('pesquisa');
             const pesquisaSeletiva = urlParams.get('pesquisa_seletiva');
@@ -949,7 +1100,7 @@ $dados_usuario = $res->fetch_assoc();
                 document.querySelector('[onclick="mostrarAba(\'seletivas-disponiveis\')"]').classList.add('ativa');
             }
             // Se não houver pesquisa, mas houver filtros de seletiva
-            else if (filtroSubcategoria || filtroCategoria || filtroData) {
+            else if (filtroSubcategoria || filtroCategoria || filtroCidade || filtroData) {
                 mostrarAba('seletivas-disponiveis');
                 document.querySelectorAll('.tab').forEach(tab => {
                     tab.classList.remove('ativa');

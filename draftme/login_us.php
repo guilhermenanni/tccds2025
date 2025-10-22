@@ -16,9 +16,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $usuario = $sql_query->fetch_assoc();
 
             if (isset($usuario['senha_usuario']) && password_verify($senha, $usuario['senha_usuario'])) {
+                
+                session_regenerate_id(true); // Segurança: evita fixação de sessão
+
+                // Armazena os dados do usuário na sessão
                 $_SESSION['id'] = $usuario['id_usuario'];
                 $_SESSION['nome'] = $usuario['nm_usuario'];
-                header("Location: home.php");
+                $_SESSION['email'] = $usuario['email_usuario'];
+                $_SESSION['cpf'] = $usuario['cpf_usuario'];
+                $_SESSION['data_nascimento'] = $usuario['dt_nasc_usuario'];
+                $_SESSION['telefone'] = $usuario['tel_usuario'];
+                $_SESSION['id_time'] = $usuario['id_time'];
+                $_SESSION['ultimo_acesso'] = time(); // opcional: expiração da sessão
+
+                header("Location: home_us.php");
                 exit;
             } else {
                 $erro_login = "Senha incorreta.";
@@ -31,12 +42,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Login do Usuário</title>
     <link rel="shortcut icon" href="1.ico" type="image/x-icon">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="css/style.css">
@@ -63,7 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="input-box">
                 <input type="password" class="input-field" name="senha" id="log-pass" required>
                 <label for="log-pass" class="label">Senha</label>
-                <i class='bx bx-lock-alt icon'></i>
+
             </div>
 
             <div class="form-cols">
@@ -82,5 +94,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </form>
     </div>
+        <script src="js/script.js"></script>
 </body>
 </html>
