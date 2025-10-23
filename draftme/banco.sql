@@ -30,7 +30,7 @@ CREATE TABLE tb_usuario (
     id_time int, 
     foreign key (id_time) references tb_time(id_time)
 );
-ALTER TABLE tb_usuario ADD COLUMN img_usuario VARCHAR(255) DEFAULT 'default.png';
+ALTER TABLE tb_usuario ADD COLUMN img_usuario VARCHAR(255);
 ALTER TABLE tb_usuario ADD COLUMN sobre longtext;
 
 
