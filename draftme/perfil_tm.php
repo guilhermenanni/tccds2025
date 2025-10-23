@@ -66,6 +66,7 @@ $tipo_usuario_logado = isset($_SESSION['tipo']) ? $_SESSION['tipo'] : null;
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+        <link rel="shortcut icon" href="1.ico" type="image/x-icon">
     <title>Perfil - DraftMe</title>
     <link rel="stylesheet" href="hometm_style.css">
     <style>

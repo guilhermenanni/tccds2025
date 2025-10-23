@@ -35,6 +35,7 @@ if (!empty($dados_usuario['img_usuario']) && file_exists('uploads/' . $dados_usu
 <head>
     <meta charset="UTF-8">
     <title>Área do Usuário - DraftMe</title>
+        <link rel="shortcut icon" href="1.ico" type="image/x-icon">
     <link rel="stylesheet" href="hometm_style.css">
     <style>
         /* Estilos adicionais específicos para usuários */

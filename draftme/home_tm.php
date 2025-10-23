@@ -36,6 +36,7 @@ if (!empty($dados['img_time']) && file_exists('uploads/' . $dados['img_time'])) 
 <head>
     <meta charset="UTF-8">
     <title>Área do Time - DraftMe</title>
+        <link rel="shortcut icon" href="1.ico" type="image/x-icon">
     <link rel="stylesheet" href="hometm_style.css">
 </head>
 <body>
