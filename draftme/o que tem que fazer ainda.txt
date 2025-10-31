@@ -1,5 +1,2 @@
-colocar um limite para a data de nascimento, não existe alguém de 1220 vivo,
-estilizar melhor o site(por favor),
-troca para o supabase e por fim organização das pastas e páginas do site 
 
 https://base44.com/  <- app ia kkkkk

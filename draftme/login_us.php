@@ -81,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="form-cols">
                 <div class="col-1"></div>
                 <div class="col-2">
-                    <a href="confirmar_us.php">Esqueceu sua senha?</a>
+                    <a href="emailpost.html">Esqueceu sua senha?</a>
                 </div>
             </div>
 
