@@ -103,11 +103,10 @@ textarea.input-field {
                 <i class='bx bx-calendar icon'></i>
             </div>
 
+            <!-- TELEFONE SEM LIMITE -->
             <div class="input-box">
-                <input type="tel" name="telefone" class="input-field" maxlength="15"
-                    pattern="\d{10,15}" inputmode="numeric" required 
-                    title="Digite apenas números (mínimo 10, máximo 15)">
-                <label class="label">Telefone</label>
+                <input type="tel" name="telefone" class="input-field" inputmode="numeric" required>
+                <label class="label"></label>
                 <i class='bx bx-phone icon'></i>
             </div>
 
@@ -142,15 +141,29 @@ textarea.input-field {
 
     <script src="js/script.js"></script>
 
-    <script>
+<script>
 // CPF - permite apenas números
 document.querySelector('input[name="cpf"]').addEventListener('input', function(e) {
     this.value = this.value.replace(/\D/g, '');
 });
 
-// Telefone - permite apenas números
-document.querySelector('input[name="telefone"]').addEventListener('input', function(e) {
-    this.value = this.value.replace(/\D/g, '');
+// TELEFONE - permite números ilimitados, com máscara dinâmica se quiser
+const telInput = document.querySelector('input[name="telefone"]');
+telInput.addEventListener('input', function(e) {
+    let v = this.value.replace(/\D/g, '');
+    // Não corta mais o número
+    if (v.length > 0) {
+        if (v.length <= 2) {
+            v = v.replace(/^(\d*)/, '($1');
+        } else if (v.length <= 6) {
+            v = v.replace(/^(\d{2})(\d*)/, '($1) $2');
+        } else if (v.length <= 10) {
+            v = v.replace(/^(\d{2})(\d{4})(\d*)/, '($1) $2-$3');
+        } else {
+            v = v.replace(/^(\d{2})(\d{5})(\d{4})(.*)/, '($1) $2-$3 $4');
+        }
+    }
+    this.value = v;
 });
 
 // Ajustar altura do textarea automaticamente
@@ -179,7 +192,7 @@ dataInput.addEventListener('change', function() {
         this.value = "";
     }
 });
-    </script>
+</script>
 
 </body>
 </html>

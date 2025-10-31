@@ -92,6 +92,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="switch-form">
                 <span>Não tem uma conta ainda? <a href="logup_tm.php">Cadastrar</a></span>
             </div>
+                        <div class="switch-form">
+                <span><a href="index.php">Voltar</a></span>
+            </div>
         </form>
     </div>
         <script src="js/script.js"></script>
