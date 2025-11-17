@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';  // Importe o contexto de autenticação
 
 const LoginScreen = ({ navigation }: any) => {
   const { login, tipoSelecionado, setTipoSelecionado } = useAuth();
@@ -17,7 +17,11 @@ const LoginScreen = ({ navigation }: any) => {
     }
     setLoading(true);
     try {
+      // Chama o método de login do contexto
       await login({ email, senha });
+
+      // Após o login bem-sucedido, navega para a tela principal
+      navigation.navigate('Tabs');  // Ou 'Feed' se preferir
     } catch (e: any) {
       setErro(e.message);
     } finally {
