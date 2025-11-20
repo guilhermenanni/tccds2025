@@ -1,3 +1,5 @@
+// mobile/src/components/PostCard.tsx
+
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
@@ -11,6 +13,8 @@ interface Props {
   curtidas_count?: number;
   comentarios_count?: number;
   onPress?: () => void;
+  onLike?: () => void;
+  onComment?: () => void;
 }
 
 const PostCard: React.FC<Props> = ({
@@ -23,7 +27,19 @@ const PostCard: React.FC<Props> = ({
   curtidas_count = 0,
   comentarios_count = 0,
   onPress,
+  onLike,
+  onComment,
 }) => {
+  const safeAutor = autor ?? '';
+
+  const handleLikePress = () => {
+    if (onLike) onLike();
+  };
+
+  const handleCommentPress = () => {
+    if (onComment) onComment();
+  };
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.header}>
@@ -31,21 +47,48 @@ const PostCard: React.FC<Props> = ({
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{autor.charAt(0).toUpperCase()}</Text>
+            <Text style={styles.avatarText}>
+              {safeAutor.charAt(0).toUpperCase()}
+            </Text>
           </View>
         )}
+
         <View>
-          <Text style={styles.autor}>{autor}</Text>
+          <Text style={styles.autor}>{safeAutor || 'Autor desconhecido'}</Text>
+
           {!!categoria && <Text style={styles.meta}>{categoria}</Text>}
         </View>
       </View>
-      <Text style={styles.texto}>{texto_postagem}</Text>
+
+      <Text style={styles.texto}>{texto_postagem ?? ''}</Text>
+
       {img_postagem ? (
         <Image source={{ uri: img_postagem }} style={styles.image} />
       ) : null}
+
       <View style={styles.footer}>
-        <Text style={styles.meta}>❤️ {curtidas_count}</Text>
-        <Text style={styles.meta}>💬 {comentarios_count}</Text>
+        <View style={styles.footerLeft}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleLikePress}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionEmoji}>❤️</Text>
+            <Text style={styles.actionLabel}>Curtir</Text>
+            <Text style={styles.actionCount}>{curtidas_count}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleCommentPress}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionEmoji}>💬</Text>
+            <Text style={styles.actionLabel}>Comentar</Text>
+            <Text style={styles.actionCount}>{comentarios_count}</Text>
+          </TouchableOpacity>
+        </View>
+
         {!!tag && <Text style={styles.tag}>#{tag}</Text>}
       </View>
     </TouchableOpacity>
@@ -108,6 +151,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  footerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#020617',
+  },
+  actionEmoji: {
+    color: '#F9FAFB',
+    fontSize: 13,
+    marginRight: 4,
+  },
+  actionLabel: {
+    color: '#E5E7EB',
+    fontSize: 13,
+    marginRight: 4,
+  },
+  actionCount: {
+    color: '#9CA3AF',
+    fontSize: 12,
   },
   tag: {
     color: '#38BDF8',

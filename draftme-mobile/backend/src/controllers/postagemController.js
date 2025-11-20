@@ -4,9 +4,9 @@ import { createPool } from '../config/db.js';
 
 const pool = createPool();
 
-// 2. POSTAGENS
-
-// Lista todas as postagens (feed)
+// ========================================
+// LISTAR POSTAGENS (FEED)
+// ========================================
 export const listarPostagens = async (req, res, next) => {
   try {
     const [rows] = await pool.query(
@@ -17,13 +17,29 @@ export const listarPostagens = async (req, res, next) => {
         p.categoria,
         p.tag,
         p.data_postagem,
+
         u.id_usuario,
         u.nm_usuario,
         u.img_usuario,
+
         t.id_time,
         t.nm_time,
         t.img_time,
-        (SELECT COUNT(*) FROM tb_curtida c WHERE c.id_postagem = p.id_postagem) AS curtidas_count
+
+        -- autor já pronto
+        CASE 
+          WHEN u.id_usuario IS NOT NULL THEN u.nm_usuario
+          WHEN t.id_time IS NOT NULL THEN t.nm_time
+        END AS autor,
+
+        CASE 
+          WHEN u.id_usuario IS NOT NULL THEN u.img_usuario
+          WHEN t.id_time IS NOT NULL THEN t.img_time
+        END AS avatar,
+
+        (SELECT COUNT(*) FROM tb_curtida c WHERE c.id_postagem = p.id_postagem) AS curtidas_count,
+        (SELECT COUNT(*) FROM tb_comentario m WHERE m.id_postagem = p.id_postagem) AS comentarios_count
+
       FROM tb_postagem p
       LEFT JOIN tb_usuario u ON p.id_usuario = u.id_usuario
       LEFT JOIN tb_time t ON p.id_time = t.id_time
@@ -36,16 +52,19 @@ export const listarPostagens = async (req, res, next) => {
   }
 };
 
-// Criação de postagem
+// ========================================
+// CRIAR POSTAGEM
+// ========================================
 export const criarPostagem = async (req, res, next) => {
   try {
     const { texto_postagem, categoria, tag, img_postagem } = req.body;
     const { id, type } = req.user;
 
     if (!texto_postagem || texto_postagem.trim() === '') {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Texto da postagem é obrigatório' });
+      return res.status(400).json({
+        success: false,
+        message: 'Texto é obrigatório',
+      });
     }
 
     let id_usuario = null;
@@ -55,9 +74,9 @@ export const criarPostagem = async (req, res, next) => {
     if (type === 'time') id_time = id;
 
     const [result] = await pool.query(
-      `INSERT INTO tb_postagem 
-      (texto_postagem, img_postagem, categoria, tag, id_usuario, id_time)
-      VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tb_postagem
+        (texto_postagem, img_postagem, categoria, tag, id_usuario, id_time)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [
         texto_postagem,
         img_postagem || null,
@@ -76,13 +95,28 @@ export const criarPostagem = async (req, res, next) => {
         p.categoria,
         p.tag,
         p.data_postagem,
+
         u.id_usuario,
         u.nm_usuario,
         u.img_usuario,
+
         t.id_time,
         t.nm_time,
         t.img_time,
-        0 AS curtidas_count
+
+        CASE 
+          WHEN u.id_usuario IS NOT NULL THEN u.nm_usuario
+          WHEN t.id_time IS NOT NULL THEN t.nm_time
+        END AS autor,
+
+        CASE 
+          WHEN u.id_usuario IS NOT NULL THEN u.img_usuario
+          WHEN t.id_time IS NOT NULL THEN t.img_time
+        END AS avatar,
+
+        0 AS curtidas_count,
+        0 AS comentarios_count
+
       FROM tb_postagem p
       LEFT JOIN tb_usuario u ON p.id_usuario = u.id_usuario
       LEFT JOIN tb_time t ON p.id_time = t.id_time
@@ -92,7 +126,6 @@ export const criarPostagem = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Postagem criada com sucesso',
       data: rows[0],
     });
   } catch (err) {
@@ -100,7 +133,9 @@ export const criarPostagem = async (req, res, next) => {
   }
 };
 
-// Curtir postagem
+// ========================================
+// CURTIR POSTAGEM
+// ========================================
 export const curtirPostagem = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -119,13 +154,15 @@ export const curtirPostagem = async (req, res, next) => {
       [id, id_usuario, id_time]
     );
 
-    res.json({ success: true, message: 'Postagem curtida' });
+    res.json({ success: true, message: 'Curtido!' });
   } catch (err) {
     next(err);
   }
 };
 
-// Remover curtida
+// ========================================
+// DESCURTIR POSTAGEM
+// ========================================
 export const descurtirPostagem = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -138,51 +175,70 @@ export const descurtirPostagem = async (req, res, next) => {
     if (user.type === 'time') id_time = user.id;
 
     await pool.query(
-      `DELETE FROM tb_curtida 
+      `DELETE FROM tb_curtida
        WHERE id_postagem = ? AND 
-             ((id_usuario IS NOT NULL AND id_usuario = ?) OR 
-              (id_time IS NOT NULL AND id_time = ?))`,
+       ((id_usuario = ?) OR (id_time = ?))`,
       [id, id_usuario, id_time]
     );
 
-    res.json({ success: true, message: 'Curtida removida' });
+    res.json({ success: true, message: 'Descurtido!' });
   } catch (err) {
     next(err);
   }
 };
 
-// Deletar postagem (apenas dono)
-export const deletarPostagem = async (req, res, next) => {
+// ========================================
+// LISTAR COMENTÁRIOS
+// ========================================
+export const listarComentarios = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const user = req.user;
 
     const [rows] = await pool.query(
-      'SELECT id_usuario, id_time FROM tb_postagem WHERE id_postagem = ?',
+      `SELECT 
+        m.id_comentario,
+        m.comentario,
+        m.data_comentario,
+        u.nm_usuario AS autor,
+        u.img_usuario AS avatar
+      FROM tb_comentario m
+      LEFT JOIN tb_usuario u ON m.id_usuario = u.id_usuario
+      WHERE m.id_postagem = ?
+      ORDER BY m.data_comentario ASC`,
       [id]
     );
 
-    if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Postagem não encontrada' });
-    }
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    const post = rows[0];
+// ========================================
+// CRIAR COMENTÁRIO
+// ========================================
+export const criarComentario = async (req, res, next) => {
+  try {
+    const { id } = req.params; // ID da postagem
+    const { comentario } = req.body;
+    const user = req.user;
 
-    if (
-      (user.type === 'usuario' && post.id_usuario !== user.id) &&
-      (user.type === 'time' && post.id_time !== user.id)
-    ) {
-      return res.status(403).json({
+    if (!comentario || comentario.trim() === '') {
+      return res.status(400).json({
         success: false,
-        message: 'Sem permissão para deletar esta postagem',
+        message: 'Comente algo...',
       });
     }
 
-    await pool.query('DELETE FROM tb_postagem WHERE id_postagem = ?', [id]);
+    const id_usuario = user.id;
 
-    res.json({ success: true, message: 'Postagem deletada com sucesso' });
+    await pool.query(
+      `INSERT INTO tb_comentario (id_postagem, id_usuario, comentario)
+       VALUES (?, ?, ?)`,
+      [id, id_usuario, comentario]
+    );
+
+    res.json({ success: true, message: 'Comentário publicado!' });
   } catch (err) {
     next(err);
   }

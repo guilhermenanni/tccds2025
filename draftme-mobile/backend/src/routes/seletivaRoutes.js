@@ -10,6 +10,7 @@ import {
   inscreverSeletiva,
   listarInscricoesUsuario,
   listarMinhasSeletivas,
+  cancelarInscricao, // <-- ADICIONADO
 } from '../controllers/seletivaController.js';
 
 const router = Router();
@@ -27,10 +28,13 @@ router.get('/minhas', authMiddleware, listarMinhasSeletivas);
 // Criação de seletiva (time logado)
 router.post('/', authMiddleware, criarSeletiva);
 
-// Inscrição do usuário em uma seletiva
+// Inscrição
 router.post('/:id/inscrever', authMiddleware, inscreverSeletiva);
 
-// Listar inscrições de um usuário específico (por id na rota)
+// CANCELAR inscrição (rota que faltava!)
+router.delete('/:id/inscrever', authMiddleware, cancelarInscricao);
+
+// Listar inscrições de um usuário específico
 router.get('/usuario/:id_usuario', authMiddleware, listarInscricoesUsuario);
 
 export default router;

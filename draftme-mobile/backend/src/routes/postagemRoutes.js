@@ -1,3 +1,5 @@
+// backend/src/routes/postagemRoutes.js
+
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
@@ -5,15 +7,21 @@ import {
   criarPostagem,
   curtirPostagem,
   descurtirPostagem,
-  deletarPostagem,
+  listarComentarios,
+  criarComentario,
 } from '../controllers/postagemController.js';
 
 const router = Router();
 
 router.get('/', listarPostagens);
 router.post('/', authMiddleware, criarPostagem);
+
+// Curtir / Descurtir
 router.post('/:id/curtir', authMiddleware, curtirPostagem);
 router.delete('/:id/curtir', authMiddleware, descurtirPostagem);
-router.delete('/:id', authMiddleware, deletarPostagem);
+
+// Comentários
+router.get('/:id/comentarios', listarComentarios);
+router.post('/:id/comentarios', authMiddleware, criarComentario);
 
 export default router;

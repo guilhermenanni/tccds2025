@@ -98,7 +98,7 @@ export const listarSeletivasPorCidade = async (req, res, next) => {
   }
 };
 
-// Criação de seletiva (apenas time logado)
+// Criação de seletiva
 export const criarSeletiva = async (req, res, next) => {
   try {
     const { type, id } = req.user;
@@ -173,25 +173,23 @@ export const criarSeletiva = async (req, res, next) => {
   }
 };
 
-// Inscrição do usuário em uma seletiva
+// Inscrever usuário
 export const inscreverSeletiva = async (req, res, next) => {
   try {
-    const { id } = req.params; // id da seletiva
+    const { id } = req.params;
     const user = req.user;
 
     if (user.type !== 'usuario') {
       return res.status(403).json({
         success: false,
-        message: 'Apenas usuários podem se inscrever em seletivas',
+        message: 'Apenas usuários podem se inscrever',
       });
     }
 
     const id_usuario = user.id;
 
-    // Verifica se já existe inscrição
     const [existing] = await pool.query(
-      `SELECT id_inscricao 
-       FROM tb_inscricao_seletiva 
+      `SELECT id_inscricao FROM tb_inscricao_seletiva 
        WHERE id_seletiva = ? AND id_usuario = ?`,
       [id, id_usuario]
     );
@@ -199,7 +197,7 @@ export const inscreverSeletiva = async (req, res, next) => {
     if (existing.length > 0) {
       return res.json({
         success: true,
-        message: 'Usuário já está inscrito nesta seletiva',
+        message: 'Usuário já inscrito',
       });
     }
 
@@ -209,13 +207,50 @@ export const inscreverSeletiva = async (req, res, next) => {
       [id, id_usuario]
     );
 
-    res.json({ success: true, message: 'Inscrição realizada com sucesso' });
+    res.json({ success: true, message: 'Inscrição realizada' });
   } catch (err) {
     next(err);
   }
 };
 
-// Lista inscrições de um usuário (usando param na rota)
+// CANCELAR INSCRIÇÃO — AQUI ESTÁ A FUNÇÃO NOVA
+export const cancelarInscricao = async (req, res, next) => {
+  try {
+    const { id } = req.params; // ID da seletiva
+    const user = req.user;
+
+    if (user.type !== 'usuario') {
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas usuários podem cancelar inscrição',
+      });
+    }
+
+    const id_usuario = user.id;
+
+    const [result] = await pool.query(
+      `DELETE FROM tb_inscricao_seletiva 
+       WHERE id_seletiva = ? AND id_usuario = ?`,
+      [id, id_usuario]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inscrição não encontrada',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Inscrição cancelada com sucesso',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Lista inscrições de um usuário específico
 export const listarInscricoesUsuario = async (req, res, next) => {
   try {
     const { id_usuario } = req.params;
@@ -250,8 +285,7 @@ export const listarInscricoesUsuario = async (req, res, next) => {
   }
 };
 
-// Lista as seletivas nas quais o usuário logado está inscrito
-// (para a rota GET /seletivas/minhas)
+// Minhas seletivas (usuário logado)
 export const listarMinhasSeletivas = async (req, res, next) => {
   try {
     const user = req.user;
