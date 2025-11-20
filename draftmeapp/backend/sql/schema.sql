@@ -39,7 +39,7 @@ ALTER TABLE tb_usuario ADD COLUMN sobre longtext;
 CREATE TABLE tb_postagem (
     id_postagem INT AUTO_INCREMENT PRIMARY KEY,
     texto_postagem VARCHAR(255),
-    img_postagem VARCHAR(255),
+    img_postagem LONGTEXT NULL,
     categoria VARCHAR(20),
     data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tag VARCHAR(40),

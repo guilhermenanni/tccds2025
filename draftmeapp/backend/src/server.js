@@ -1,3 +1,5 @@
+// backend/src/server.js
+
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -16,6 +18,7 @@ configDotenv();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Testa conexão com o banco
 createPool()
   .getConnection()
   .then((conn) => {
@@ -26,10 +29,25 @@ createPool()
     console.error('❌ Erro ao conectar no MySQL:', err.message);
   });
 
+// Middlewares globais
 app.use(cors());
-app.use(express.json());
+
+// Aumenta o limite do JSON para aceitar imagens base64 maiores
+app.use(
+  express.json({
+    limit: '10mb',
+  })
+);
+app.use(
+  express.urlencoded({
+    limit: '10mb',
+    extended: true,
+  })
+);
+
 app.use(morgan('dev'));
 
+// Rotas
 app.use('/auth', authRoutes);
 app.use('/postagens', postagemRoutes);
 app.use('/comentarios', comentarioRoutes);
@@ -37,6 +55,7 @@ app.use('/seletivas', seletivaRoutes);
 app.use('/usuarios', usuarioRoutes);
 app.use('/health', healthRoutes);
 
+// Middleware de erro centralizado
 app.use(errorHandler);
 
 app.listen(PORT, () => {

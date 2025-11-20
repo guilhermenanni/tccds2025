@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Image, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  Image,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+  ScrollView,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import PostCard from '../components/PostCard';
@@ -13,169 +26,319 @@ interface Postagem {
   data_postagem: string;
 }
 
-const ProfileScreen = () => {
-  const { user } = useAuth();
-  const [perfil, setPerfil] = useState<any>(null);
+interface PerfilUsuario {
+  id_usuario: number;
+  nm_usuario: string;
+  email_usuario: string;
+  tel_usuario?: string | null;
+  img_usuario?: string | null;
+  sobre?: string | null;
+}
+
+interface PerfilTime {
+  id_time: number;
+  nm_time: string;
+  email_time: string;
+  tel_time?: string | null;
+  img_time?: string | null;
+  sobre?: string | null;
+}
+
+const ProfileScreen: React.FC = () => {
+  const { user, tipoSelecionado, token, logout } = useAuth();
+  const [perfil, setPerfil] = useState<PerfilUsuario | PerfilTime | null>(null);
   const [postagens, setPostagens] = useState<Postagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState(false);
-  const [sobre, setSobre] = useState('');
-  const [nome, setNome] = useState('');
-  const [imagem, setImagem] = useState('');
 
-  const loadPerfil = async () => {
+  const [nomeEdit, setNomeEdit] = useState('');
+  const [telEdit, setTelEdit] = useState('');
+  const [sobreEdit, setSobreEdit] = useState('');
+  const [imgLocal, setImgLocal] = useState<string | null>(null);
+  const [imgBase64, setImgBase64] = useState<string | null>(null);
+
+  const ehTime = tipoSelecionado === 'time';
+
+  const carregarPerfilEPosts = async () => {
     if (!user) return;
+
     try {
-      let perfilResponse;
-      let postsResponse;
+      setLoading(true);
 
-      if (user.tipo === 'usuario') {
-        perfilResponse = await api.get(`/usuarios/usuario/${user.id}`);
-        postsResponse = await api.get(`/usuarios/usuario/${user.id}/postagens`);
-      } else {
-        perfilResponse = await api.get(`/usuarios/time/${user.id}`);
-        postsResponse = await api.get(`/usuarios/time/${user.id}/postagens`);
+      if (ehTime && 'id_time' in user) {
+        const [perfilRes, postsRes] = await Promise.all([
+          api.get(`/usuarios/time/${user.id_time}`),
+          api.get(`/usuarios/time/${user.id_time}/postagens`),
+        ]);
+
+        const p: PerfilTime = perfilRes.data.data;
+        setPerfil(p);
+        setNomeEdit(p.nm_time);
+        setTelEdit(p.tel_time || '');
+        setSobreEdit(p.sobre || '');
+        setPostagens(postsRes.data.data || []);
+        setImgLocal(null);
+        setImgBase64(null);
+      } else if (!ehTime && 'id_usuario' in user) {
+        const [perfilRes, postsRes] = await Promise.all([
+          api.get(`/usuarios/usuario/${user.id_usuario}`),
+          api.get(`/usuarios/usuario/${user.id_usuario}/postagens`),
+        ]);
+
+        const p: PerfilUsuario = perfilRes.data.data;
+        setPerfil(p);
+        setNomeEdit(p.nm_usuario);
+        setTelEdit(p.tel_usuario || '');
+        setSobreEdit(p.sobre || '');
+        setPostagens(postsRes.data.data || []);
+        setImgLocal(null);
+        setImgBase64(null);
       }
-
-      setPerfil(perfilResponse.data.data);
-      setPostagens(postsResponse.data.data || []);
-
-      if (user.tipo === 'usuario') {
-        setNome(perfilResponse.data.data.nm_usuario);
-        setSobre(perfilResponse.data.data.sobre || '');
-        setImagem(perfilResponse.data.data.img_usuario || '');
-      } else {
-        setNome(perfilResponse.data.data.nm_time);
-        setSobre(perfilResponse.data.data.sobre_time || '');
-        setImagem(perfilResponse.data.data.img_time || '');
-      }
-    } catch (e) {
-      console.log('Erro ao carregar perfil', e);
+    } catch (err: any) {
+      console.log('Erro ao carregar perfil:', err?.response?.data || err.message);
+      Alert.alert('Erro', 'Não foi possível carregar o perfil.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadPerfil();
-  }, [user]);
+    carregarPerfilEPosts();
+  }, [tipoSelecionado]);
 
-  const handleSalvar = async () => {
-    if (!user) return;
-    try {
-      if (user.tipo === 'usuario') {
-        await api.put(`/usuarios/usuario/${user.id}`, {
-          nm_usuario: nome,
-          sobre,
-          img_usuario: imagem || null,
-        });
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permissão', 'Precisamos de acesso à galeria para mudar a foto.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      setImgLocal(asset.uri);
+      if (asset.base64) {
+        setImgBase64(`data:image/jpeg;base64,${asset.base64}`);
       } else {
-        await api.put(`/usuarios/time/${user.id}`, {
-          nm_time: nome,
-          sobre_time: sobre,
-          img_time: imagem || null,
-        });
+        setImgBase64(null);
       }
-      Alert.alert('Sucesso', 'Perfil atualizado');
-      setEditando(false);
-      loadPerfil();
-    } catch (e) {
-      console.log('Erro ao atualizar perfil', e);
-      Alert.alert('Erro', 'Não foi possível atualizar o perfil');
     }
   };
 
-  const renderPost = ({ item }: { item: Postagem }) => (
-    <PostCard
-      autor={nome}
-      avatar={imagem}
-      texto_postagem={item.texto_postagem}
-      categoria={item.categoria}
-      tag={item.tag}
-      img_postagem={item.img_postagem}
-      curtidas_count={0}
-      comentarios_count={0}
-    />
-  );
+  const handleSalvarPerfil = async () => {
+    if (!token || !user || !perfil) return;
 
-  if (!user) {
+    try {
+      setLoading(true);
+
+      if (ehTime && 'id_time' in user && 'id_time' in perfil) {
+        await api.put(
+          `/usuarios/time/${user.id_time}`,
+          {
+            nm_time: nomeEdit.trim(),
+            tel_time: telEdit.trim() || null,
+            img_time: imgBase64 ?? (perfil as PerfilTime).img_time ?? null,
+            sobre: sobreEdit.trim() || null,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      } else if (!ehTime && 'id_usuario' in user && 'id_usuario' in perfil) {
+        await api.put(
+          `/usuarios/usuario/${user.id_usuario}`,
+          {
+            nm_usuario: nomeEdit.trim(),
+            tel_usuario: telEdit.trim() || null,
+            img_usuario: imgBase64 ?? (perfil as PerfilUsuario).img_usuario ?? null,
+            sobre: sobreEdit.trim() || null,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+
+      Alert.alert('Sucesso', 'Perfil atualizado.');
+      setEditando(false);
+      carregarPerfilEPosts();
+    } catch (e: any) {
+      console.log('Erro ao atualizar perfil:', e?.response?.data || e.message);
+      Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nome =
+    ehTime && perfil && 'nm_time' in perfil
+      ? perfil.nm_time
+      : !ehTime && perfil && 'nm_usuario' in perfil
+      ? perfil.nm_usuario
+      : 'Perfil';
+
+  const email =
+    ehTime && perfil && 'email_time' in perfil
+      ? perfil.email_time
+      : !ehTime && perfil && 'email_usuario' in perfil
+      ? perfil.email_usuario
+      : '';
+
+  const imagemAtual =
+    (ehTime &&
+      perfil &&
+      'img_time' in perfil &&
+      (perfil.img_time as string | null)) ||
+    (!ehTime &&
+      perfil &&
+      'img_usuario' in perfil &&
+      (perfil.img_usuario as string | null)) ||
+    null;
+
+  const imagemMostrar = imgLocal || imagemAtual || null;
+
+  if (loading && !perfil) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.error}>Você precisa estar logado.</Text>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#22C55E" />
       </SafeAreaView>
     );
   }
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator color="#22C55E" />
+  const Header = (
+    <View style={styles.header}>
+      <View style={styles.row}>
+        {imagemMostrar ? (
+          <Image source={{ uri: imagemMostrar }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarInitial}>
+              {nome?.[0]?.toUpperCase() || '?'}
+            </Text>
+          </View>
+        )}
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name}>{nome}</Text>
+          <Text style={styles.email}>{email}</Text>
+          {!editando && perfil && 'sobre' in perfil && perfil.sobre && (
+            <Text style={styles.about}>{perfil.sobre}</Text>
+          )}
         </View>
-      </SafeAreaView>
-    );
-  }
+      </View>
+
+      <View style={styles.actionsRow}>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => setEditando((prev) => !prev)}
+        >
+          <Text style={styles.editButtonText}>
+            {editando ? 'Cancelar' : 'Editar perfil'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+          <Text style={styles.logoutButtonText}>Sair</Text>
+        </TouchableOpacity>
+      </View>
+
+      {editando && (
+        <View style={styles.editBox}>
+          <TouchableOpacity
+            style={styles.changePhotoButton}
+            onPress={handlePickImage}
+          >
+            <Text style={styles.changePhotoText}>
+              {imgLocal ? 'Trocar foto' : 'Escolher foto de perfil'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.editField}>
+            <Text style={styles.editLabel}>
+              {ehTime ? 'Nome do time' : 'Seu nome'}
+            </Text>
+            <TextInput
+              style={styles.editInput}
+              value={nomeEdit}
+              onChangeText={setNomeEdit}
+              maxLength={80}
+            />
+          </View>
+
+          <View style={styles.editField}>
+            <Text style={styles.editLabel}>Telefone</Text>
+            <TextInput
+              style={styles.editInput}
+              value={telEdit}
+              onChangeText={(value) =>
+                setTelEdit(value.replace(/\D/g, '').slice(0, 11))
+              }
+              placeholder="DDD + número"
+              placeholderTextColor="#6B7280"
+              keyboardType="numeric"
+              maxLength={11}
+            />
+          </View>
+
+          <View style={styles.editField}>
+            <Text style={styles.editLabel}>Sobre</Text>
+            <TextInput
+              style={[styles.editInput, styles.editTextArea]}
+              value={sobreEdit}
+              onChangeText={setSobreEdit}
+              multiline
+              maxLength={300}
+              placeholder="Conte um pouco sobre você / seu time"
+              placeholderTextColor="#6B7280"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSalvarPerfil}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#F9FAFB" />
+            ) : (
+              <Text style={styles.saveButtonText}>Salvar alterações</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <Text style={styles.sectionTitle}>
+        {ehTime ? 'Postagens do time' : 'Suas postagens'}
+      </Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        ListHeaderComponent={
-          <View style={styles.headerBox}>
-            {imagem ? (
-              <Image source={{ uri: imagem }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{nome.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-            {editando ? (
-              <>
-                <TextInput
-                  style={styles.input}
-                  value={nome}
-                  onChangeText={setNome}
-                  placeholder="Nome"
-                  placeholderTextColor="#9CA3AF"
-                />
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={sobre}
-                  onChangeText={setSobre}
-                  placeholder="Sobre"
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                />
-                <TextInput
-                  style={styles.input}
-                  value={imagem}
-                  onChangeText={setImagem}
-                  placeholder="URL da imagem de perfil"
-                  placeholderTextColor="#9CA3AF"
-                />
-                <TouchableOpacity style={styles.button} onPress={handleSalvar}>
-                  <Text style={styles.buttonText}>Salvar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.buttonSecondary} onPress={() => setEditando(false)}>
-                  <Text style={styles.buttonSecondaryText}>Cancelar</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={styles.nome}>{nome}</Text>
-                <Text style={styles.tipo}>{user.tipo === 'usuario' ? 'Jogador' : 'Time'}</Text>
-                {!!sobre && <Text style={styles.sobre}>{sobre}</Text>}
-                <TouchableOpacity style={styles.button} onPress={() => setEditando(true)}>
-                  <Text style={styles.buttonText}>Editar perfil</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <Text style={styles.sectionTitle}>Postagens</Text>
-          </View>
-        }
+        ListHeaderComponent={Header}
         data={postagens}
-        keyExtractor={(item) => String(item.id_postagem)}
-        renderItem={renderPost}
+        keyExtractor={(item) => item.id_postagem.toString()}
+        renderItem={({ item }) => (
+          <PostCard postagem={item as any} onPress={() => {}} />
+        )}
         contentContainerStyle={{ paddingBottom: 24 }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {ehTime
+              ? 'Esse time ainda não fez nenhuma postagem.'
+              : 'Você ainda não postou nada.'}
+          </Text>
+        }
       />
     </SafeAreaView>
   );
@@ -188,91 +351,147 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#020617',
   },
-  center: {
+  loadingContainer: {
     flex: 1,
+    backgroundColor: '#020617',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerBox: {
-    padding: 16,
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 16,
     alignItems: 'center',
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
+    width: 72,
+    height: 72,
+    borderRadius: 999,
+    backgroundColor: '#111827',
   },
   avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
+    width: 72,
+    height: 72,
+    borderRadius: 999,
     backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    color: '#E5E7EB',
-    fontSize: 32,
+  avatarInitial: {
+    color: '#F9FAFB',
+    fontSize: 28,
     fontWeight: '700',
   },
-  nome: {
+  name: {
     color: '#F9FAFB',
     fontSize: 20,
     fontWeight: '700',
+    marginBottom: 4,
   },
-  tipo: {
+  email: {
     color: '#9CA3AF',
-    marginBottom: 8,
+    fontSize: 14,
+    marginBottom: 4,
   },
-  sobre: {
-    color: '#E5E7EB',
-    textAlign: 'center',
-    marginVertical: 8,
+  about: {
+    color: '#D1D5DB',
+    fontSize: 13,
   },
-  sectionTitle: {
-    color: '#F9FAFB',
-    fontSize: 18,
-    fontWeight: '700',
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 16,
+  },
+  editButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#374151',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: '#E5E7EB',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  logoutButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: '#EF4444',
+  },
+  logoutButtonText: {
+    color: '#F9FAFB',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  editBox: {
+    marginTop: 16,
+    backgroundColor: '#020617',
+    borderRadius: 16,
+    padding: 12,
+  },
+  changePhotoButton: {
     alignSelf: 'flex-start',
+    backgroundColor: '#111827',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
   },
-  error: {
-    color: '#F97316',
-    textAlign: 'center',
-    marginTop: 40,
+  changePhotoText: {
+    color: '#E5E7EB',
+    fontSize: 13,
   },
-  input: {
-    width: '100%',
+  editField: {
+    marginBottom: 10,
+  },
+  editLabel: {
+    color: '#E5E7EB',
+    marginBottom: 4,
+    fontSize: 13,
+  },
+  editInput: {
     backgroundColor: '#020617',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     color: '#F9FAFB',
-    marginBottom: 8,
+    fontSize: 14,
   },
-  textArea: {
+  editTextArea: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  button: {
+  saveButton: {
     backgroundColor: '#22C55E',
     paddingVertical: 10,
-    paddingHorizontal: 24,
     borderRadius: 999,
+    alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: {
+  saveButtonText: {
     color: '#F9FAFB',
+    fontSize: 14,
     fontWeight: '600',
   },
-  buttonSecondary: {
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 999,
+  sectionTitle: {
+    color: '#E5E7EB',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 24,
+    marginBottom: 8,
   },
-  buttonSecondaryText: {
-    color: '#9CA3AF',
+  emptyText: {
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 32,
   },
 });

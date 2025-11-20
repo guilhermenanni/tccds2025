@@ -1,109 +1,202 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 const RegisterTeamScreen = ({ navigation }: any) => {
   const { registerTime } = useAuth();
+
   const [nm_time, setNome] = useState('');
   const [email_time, setEmail] = useState('');
   const [senha_time, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
   const [time_cnpj, setCnpj] = useState('');
   const [categoria_time, setCategoria] = useState('');
   const [esporte_time, setEsporte] = useState('futebol');
+
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  const handleCnpjChange = (value: string) => {
+    const onlyDigits = value.replace(/\D/g, '').slice(0, 14); // cnpj 14 dígitos
+    setCnpj(onlyDigits);
+  };
+
+  const validarCampos = () => {
+    if (!nm_time.trim()) return 'Informe o nome do time.';
+    if (!email_time.trim()) return 'Informe o e-mail.';
+    if (!email_time.includes('@')) return 'E-mail inválido.';
+    if (senha_time.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
+    if (senha_time !== confirmarSenha) return 'As senhas não conferem.';
+    if (time_cnpj.length !== 14) return 'CNPJ deve ter 14 dígitos numéricos.';
+    if (!categoria_time.trim()) return 'Informe a categoria do time.';
+    if (!esporte_time.trim()) return 'Informe o esporte.';
+    return null;
+  };
+
   const handleRegister = async () => {
     setErro(null);
-    if (!nm_time || !email_time || !senha_time || !time_cnpj) {
-      setErro('Preencha todos os campos obrigatórios');
+
+    const erroValidacao = validarCampos();
+    if (erroValidacao) {
+      setErro(erroValidacao);
       return;
     }
-    setLoading(true);
+
     try {
+      setLoading(true);
       await registerTime({
-        nm_time,
-        email_time,
+        nm_time: nm_time.trim(),
+        email_time: email_time.trim().toLowerCase(),
         senha_time,
         time_cnpj,
         categoria_time,
         esporte_time,
       });
     } catch (e: any) {
-      setErro(e.message);
+      setErro(e.message || 'Erro ao registrar time.');
     } finally {
       setLoading(false);
     }
   };
 
+  const botaoDesabilitado = loading;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.box}>
-          <Text style={styles.title}>Cadastro de Time</Text>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.box}>
+            <Text style={styles.title}>Cadastro de time</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Nome do time"
-            placeholderTextColor="#9CA3AF"
-            value={nm_time}
-            onChangeText={setNome}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#9CA3AF"
-            value={email_time}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Senha"
-            placeholderTextColor="#9CA3AF"
-            secureTextEntry
-            value={senha_time}
-            onChangeText={setSenha}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="CNPJ (somente números)"
-            placeholderTextColor="#9CA3AF"
-            value={time_cnpj}
-            onChangeText={setCnpj}
-            keyboardType="numeric"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Categoria (ex: Sub-15, Sub-17)"
-            placeholderTextColor="#9CA3AF"
-            value={categoria_time}
-            onChangeText={setCategoria}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Esporte (padrão: futebol)"
-            placeholderTextColor="#9CA3AF"
-            value={esporte_time}
-            onChangeText={setEsporte}
-          />
+            <View style={styles.field}>
+              <Text style={styles.label}>Nome do time</Text>
+              <TextInput
+                style={styles.input}
+                value={nm_time}
+                onChangeText={setNome}
+                placeholder="Nome do time"
+                placeholderTextColor="#6B7280"
+                maxLength={80}
+              />
+            </View>
 
-          {erro && <Text style={styles.erro}>{erro}</Text>}
+            <View style={styles.field}>
+              <Text style={styles.label}>E-mail</Text>
+              <TextInput
+                style={styles.input}
+                value={email_time}
+                onChangeText={setEmail}
+                placeholder="contato@seutime.com"
+                placeholderTextColor="#6B7280"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                maxLength={120}
+              />
+            </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#F9FAFB" />
-            ) : (
-              <Text style={styles.buttonText}>Criar conta de time</Text>
-            )}
-          </TouchableOpacity>
+            <View style={styles.field}>
+              <Text style={styles.label}>CNPJ</Text>
+              <TextInput
+                style={styles.input}
+                value={time_cnpj}
+                onChangeText={handleCnpjChange}
+                placeholder="Somente números"
+                placeholderTextColor="#6B7280"
+                keyboardType="numeric"
+                maxLength={14}
+              />
+            </View>
 
-          <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>Voltar para o login</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            <View style={styles.field}>
+              <Text style={styles.label}>Categoria</Text>
+              <TextInput
+                style={styles.input}
+                value={categoria_time}
+                onChangeText={setCategoria}
+                placeholder="Sub-20, profissional..."
+                placeholderTextColor="#6B7280"
+                maxLength={40}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Esporte</Text>
+              <TextInput
+                style={styles.input}
+                value={esporte_time}
+                onChangeText={setEsporte}
+                placeholder="futebol, futsal..."
+                placeholderTextColor="#6B7280"
+                maxLength={40}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Senha</Text>
+              <TextInput
+                style={styles.input}
+                value={senha_time}
+                onChangeText={setSenha}
+                placeholder="********"
+                placeholderTextColor="#6B7280"
+                secureTextEntry
+                maxLength={32}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Confirmar senha</Text>
+              <TextInput
+                style={styles.input}
+                value={confirmarSenha}
+                onChangeText={setConfirmarSenha}
+                placeholder="********"
+                placeholderTextColor="#6B7280"
+                secureTextEntry
+                maxLength={32}
+              />
+            </View>
+
+            {erro && <Text style={styles.erro}>{erro}</Text>}
+
+            <TouchableOpacity
+              style={[styles.button, botaoDesabilitado && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={botaoDesabilitado}
+            >
+              {loading ? (
+                <ActivityIndicator color="#F9FAFB" />
+              ) : (
+                <Text style={styles.buttonText}>Cadastrar</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.back}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.backText}>Voltar para o login</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -111,19 +204,20 @@ const RegisterTeamScreen = ({ navigation }: any) => {
 export default RegisterTeamScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: '#020617',
   },
-  scroll: {
+  container: {
     flexGrow: 1,
     justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   box: {
-    marginHorizontal: 24,
-    padding: 24,
     backgroundColor: '#0B1120',
     borderRadius: 24,
+    padding: 24,
   },
   title: {
     color: '#F9FAFB',
@@ -132,20 +226,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  field: {
+    marginBottom: 12,
+  },
+  label: {
+    color: '#E5E7EB',
+    marginBottom: 4,
+    fontSize: 14,
+  },
   input: {
     backgroundColor: '#020617',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 999,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     color: '#F9FAFB',
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
+    fontSize: 14,
   },
   button: {
     backgroundColor: '#22C55E',
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 999,
     alignItems: 'center',
     marginTop: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   buttonText: {
     color: '#F9FAFB',

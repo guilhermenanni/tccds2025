@@ -1,166 +1,157 @@
+// backend/src/controllers/usuarioController.js
+
 import { createPool } from '../config/db.js';
 
 const pool = createPool();
 
-// 5. USUÁRIOS / PERFIS
-
-export const obterPerfilUsuario = async (req, res, next) => {
+/**
+ * GET /usuarios/usuario/:id
+ * Retorna os dados do usuário (perfil)
+ */
+export const obterPerfilUsuario = async (req, res) => {
   try {
     const { id } = req.params;
 
     const [rows] = await pool.query(
-      `SELECT id_usuario, nm_usuario, email_usuario, tel_usuario, img_usuario, sobre, data_criacao, data_atualizacao
-       FROM tb_usuario
-       WHERE id_usuario = ?`,
+      `
+        SELECT
+          id_usuario,
+          nm_usuario,
+          email_usuario,
+          tel_usuario,
+          img_usuario,
+          sobre
+        FROM tb_usuario
+        WHERE id_usuario = ?
+      `,
       [id]
     );
 
-    const user = rows[0];
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado',
+      });
     }
 
-    res.json({ success: true, data: user });
+    return res.json({
+      success: true,
+      data: rows[0],
+    });
   } catch (err) {
-    next(err);
+    console.error('Erro interno ao obter perfil do usuário:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao obter perfil do usuário',
+    });
   }
 };
 
-export const obterPerfilTime = async (req, res, next) => {
+/**
+ * PUT /usuarios/usuario/:id
+ * Atualiza os dados do usuário (nome, telefone, imagem, sobre)
+ * Requer authMiddleware antes da rota para garantir que está logado.
+ */
+export const atualizarPerfilUsuario = async (req, res) => {
   try {
     const { id } = req.params;
+    const {
+      nm_usuario,
+      tel_usuario,
+      img_usuario,
+      sobre,
+    } = req.body;
 
-    const [rows] = await pool.query(
-      `SELECT id_time, nm_time, email_time, time_cnpj, categoria_time, esporte_time, img_time, sobre_time, data_criacao, data_atualizacao
-       FROM tb_time
-       WHERE id_time = ?`,
-      [id]
-    );
-
-    const time = rows[0];
-    if (!time) {
-      return res.status(404).json({ success: false, message: 'Time não encontrado' });
-    }
-
-    res.json({ success: true, data: time });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const atualizarPerfilUsuario = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { id: idToken, type } = req.user;
-
-    if (type !== 'usuario' || Number(id) !== idToken) {
-      return res.status(403).json({ success: false, message: 'Sem permissão para editar este perfil' });
-    }
-
-    const { nm_usuario, tel_usuario, img_usuario, sobre } = req.body;
-
+    // Atualiza apenas os campos que fazem sentido para o perfil
     await pool.query(
-      `UPDATE tb_usuario
-       SET nm_usuario = COALESCE(?, nm_usuario),
-           tel_usuario = COALESCE(?, tel_usuario),
-           img_usuario = COALESCE(?, img_usuario),
-           sobre = COALESCE(?, sobre)
-       WHERE id_usuario = ?`,
-      [nm_usuario, tel_usuario, img_usuario, sobre, id]
+      `
+        UPDATE tb_usuario
+        SET
+          nm_usuario = COALESCE(?, nm_usuario),
+          tel_usuario = ?,
+          img_usuario = ?,
+          sobre = ?
+        WHERE id_usuario = ?
+      `,
+      [
+        nm_usuario ?? null,
+        tel_usuario ?? null,
+        img_usuario ?? null,
+        sobre ?? null,
+        id,
+      ]
     );
 
+    // Busca o registro atualizado para retornar
     const [rows] = await pool.query(
-      `SELECT id_usuario, nm_usuario, email_usuario, tel_usuario, img_usuario, sobre, data_criacao, data_atualizacao
-       FROM tb_usuario
-       WHERE id_usuario = ?`,
+      `
+        SELECT
+          id_usuario,
+          nm_usuario,
+          email_usuario,
+          tel_usuario,
+          img_usuario,
+          sobre
+        FROM tb_usuario
+        WHERE id_usuario = ?
+      `,
       [id]
     );
 
-    res.json({ success: true, data: rows[0], message: 'Perfil atualizado com sucesso' });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const atualizarPerfilTime = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { id: idToken, type } = req.user;
-
-    if (type !== 'time' || Number(id) !== idToken) {
-      return res.status(403).json({ success: false, message: 'Sem permissão para editar este perfil' });
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado após atualização',
+      });
     }
 
-    const { nm_time, categoria_time, esporte_time, img_time, sobre_time } = req.body;
-
-    await pool.query(
-      `UPDATE tb_time
-       SET nm_time = COALESCE(?, nm_time),
-           categoria_time = COALESCE(?, categoria_time),
-           esporte_time = COALESCE(?, esporte_time),
-           img_time = COALESCE(?, img_time),
-           sobre_time = COALESCE(?, sobre_time)
-       WHERE id_time = ?`,
-      [nm_time, categoria_time, esporte_time, img_time, sobre_time, id]
-    );
-
-    const [rows] = await pool.query(
-      `SELECT id_time, nm_time, email_time, time_cnpj, categoria_time, esporte_time, img_time, sobre_time, data_criacao, data_atualizacao
-       FROM tb_time
-       WHERE id_time = ?`,
-      [id]
-    );
-
-    res.json({ success: true, data: rows[0], message: 'Perfil de time atualizado com sucesso' });
+    return res.json({
+      success: true,
+      message: 'Perfil atualizado com sucesso',
+      data: rows[0],
+    });
   } catch (err) {
-    next(err);
+    console.error('Erro interno ao atualizar perfil do usuário:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao atualizar perfil do usuário',
+    });
   }
 };
 
-export const listarPostagensUsuario = async (req, res, next) => {
+/**
+ * GET /usuarios/usuario/:id/postagens
+ * Lista as postagens feitas por um usuário específico
+ */
+export const listarPostagensUsuario = async (req, res) => {
   try {
     const { id } = req.params;
 
     const [rows] = await pool.query(
-      `SELECT 
-        p.id_postagem,
-        p.texto_postagem,
-        p.img_postagem,
-        p.categoria,
-        p.tag,
-        p.data_postagem
-      FROM tb_postagem p
-      WHERE p.id_usuario = ?
-      ORDER BY p.data_postagem DESC`,
+      `
+        SELECT
+          p.id_postagem,
+          p.texto_postagem,
+          p.img_postagem,
+          p.categoria,
+          p.tag,
+          p.data_postagem
+        FROM tb_postagem p
+        WHERE p.id_usuario = ?
+        ORDER BY p.data_postagem DESC
+      `,
       [id]
     );
 
-    res.json({ success: true, data: rows });
+    return res.json({
+      success: true,
+      data: rows,
+    });
   } catch (err) {
-    next(err);
-  }
-};
-
-export const listarPostagensTime = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const [rows] = await pool.query(
-      `SELECT 
-        p.id_postagem,
-        p.texto_postagem,
-        p.img_postagem,
-        p.categoria,
-        p.tag,
-        p.data_postagem
-      FROM tb_postagem p
-      WHERE p.id_time = ?
-      ORDER BY p.data_postagem DESC`,
-      [id]
-    );
-
-    res.json({ success: true, data: rows });
-  } catch (err) {
-    next(err);
+    console.error('Erro interno ao listar postagens do usuário:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao listar postagens do usuário',
+    });
   }
 };
