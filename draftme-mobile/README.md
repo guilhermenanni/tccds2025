@@ -1,7 +1,5 @@
 # DraftMe - API + App Mobile (Expo / React Native + MySQL)
 
-Projeto base gerado a partir das especificações do DraftMe.
-
 ## Estrutura
 
 - `backend/` - API em **Node.js + Express + MySQL**
@@ -118,17 +116,3 @@ npm run ios
 ```
 
 ---
-
-## 3. Fluxos prontos
-
-- **Login** como Jogador ou Time.
-- **Cadastro** de Jogador / Time.
-- **Feed** com listagem de postagens.
-- **Detalhe da postagem** com comentários.
-- **Criar postagem** (texto + URL de imagem).
-- **Listagem de seletivas** + inscrição (jogador).
-- **Perfil** do usuário/time com edição básica + listagem de postagens.
-
-Toda a base já está organizada para você ir refinando regras de negócio, validações, upload de imagem real, filtros, etc.
-
-Bom proveito! ⚽🔥
