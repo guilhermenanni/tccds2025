@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-  ScrollView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
@@ -25,33 +24,25 @@ interface Postagem {
   img_postagem?: string | null;
   categoria?: string | null;
   tag?: string | null;
-  autor: string;
-  avatar?: string | null;
-  curtidas_count: number;
-  comentarios_count: number;
+  curtidas_count?: number;
+  comentarios_count?: number;
 }
 
-interface PerfilUsuario {
-  id_usuario: number;
-  nm_usuario: string;
-  email_usuario: string;
-  tel_usuario?: string | null;
-  img_usuario?: string | null;
-  sobre?: string | null;
-}
+type TipoPerfil = 'usuario' | 'time';
 
-interface PerfilTime {
-  id_time: number;
-  nm_time: string;
-  email_time: string;
-  tel_time?: string | null;
-  img_time?: string | null;
+interface PerfilNormalizado {
+  tipo: TipoPerfil;
+  id: number;
+  nome: string;
+  email: string;
+  telefone?: string | null;
+  imagem?: string | null;
   sobre?: string | null;
 }
 
 const ProfileScreen: React.FC<any> = ({ navigation }) => {
   const { user, tipoSelecionado, token, logout } = useAuth();
-  const [perfil, setPerfil] = useState<PerfilUsuario | PerfilTime | null>(null);
+  const [perfil, setPerfil] = useState<PerfilNormalizado | null>(null);
   const [postagens, setPostagens] = useState<Postagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState(false);
@@ -63,6 +54,7 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
   const [salvando, setSalvando] = useState(false);
 
   const ehTime = tipoSelecionado === 'time';
+  const ehUsuario = tipoSelecionado === 'usuario';
 
   const carregarPerfilEPosts = async () => {
     if (!user) {
@@ -74,34 +66,87 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
       setLoading(true);
 
       if (ehTime && 'id_time' in user) {
+        const id_time = Number(user.id_time);
+
         const [perfilRes, postsRes] = await Promise.all([
-          api.get(`/usuarios/time/${user.id_time}`),
-          api.get(`/usuarios/time/${user.id_time}/postagens`),
+          api.get(`/usuarios/time/${id_time}`),
+          api.get(`/usuarios/time/${id_time}/postagens`),
         ]);
 
-        const p: PerfilTime = perfilRes.data.data;
-        setPerfil(p);
-        setNomeEdit(p.nm_time);
-        setTelEdit(p.tel_time || '');
-        setSobreEdit(p.sobre || '');
-        setPostagens(postsRes.data.data || []);
+        const raw = perfilRes.data.data || perfilRes.data;
+        const perfilNorm: PerfilNormalizado = {
+          tipo: 'time',
+          id: raw.id_time,
+          nome: raw.nm_time,
+          email: raw.email_time,
+          telefone: raw.tel_time ?? null,
+          imagem: raw.img_time ?? null,
+          sobre: raw.sobre_time ?? raw.sobre ?? null,
+        };
+
+        setPerfil(perfilNorm);
+        setNomeEdit(perfilNorm.nome);
+        setTelEdit(perfilNorm.telefone || '');
+        setSobreEdit(perfilNorm.sobre || '');
         setImgLocal(null);
-      } else if (!ehTime && 'id_usuario' in user) {
+
+        const listaPosts: Postagem[] = (postsRes.data.data || []).map(
+          (p: any) => ({
+            id_postagem: p.id_postagem,
+            texto_postagem: p.texto_postagem,
+            img_postagem: p.img_postagem ?? null,
+            categoria: p.categoria ?? null,
+            tag: p.tag ?? null,
+            curtidas_count: p.curtidas_count ?? 0,
+            comentarios_count: p.comentarios_count ?? 0,
+          })
+        );
+
+        setPostagens(listaPosts);
+      } else if (ehUsuario && 'id_usuario' in user) {
+        const id_usuario = Number(user.id_usuario);
+
         const [perfilRes, postsRes] = await Promise.all([
-          api.get(`/usuarios/usuario/${user.id_usuario}`),
-          api.get(`/usuarios/usuario/${user.id_usuario}/postagens`),
+          api.get(`/usuarios/usuario/${id_usuario}`),
+          api.get(`/usuarios/usuario/${id_usuario}/postagens`),
         ]);
 
-        const p: PerfilUsuario = perfilRes.data.data;
-        setPerfil(p);
-        setNomeEdit(p.nm_usuario);
-        setTelEdit(p.tel_usuario || '');
-        setSobreEdit(p.sobre || '');
-        setPostagens(postsRes.data.data || []);
+        const raw = perfilRes.data.data || perfilRes.data;
+        const perfilNorm: PerfilNormalizado = {
+          tipo: 'usuario',
+          id: raw.id_usuario,
+          nome: raw.nm_usuario,
+          email: raw.email_usuario,
+          telefone: raw.tel_usuario ?? null,
+          imagem: raw.img_usuario ?? null,
+          sobre: raw.sobre ?? null,
+        };
+
+        setPerfil(perfilNorm);
+        setNomeEdit(perfilNorm.nome);
+        setTelEdit(perfilNorm.telefone || '');
+        setSobreEdit(perfilNorm.sobre || '');
         setImgLocal(null);
+
+        const listaPosts: Postagem[] = (postsRes.data.data || []).map(
+          (p: any) => ({
+            id_postagem: p.id_postagem,
+            texto_postagem: p.texto_postagem,
+            img_postagem: p.img_postagem ?? null,
+            categoria: p.categoria ?? null,
+            tag: p.tag ?? null,
+            curtidas_count: p.curtidas_count ?? 0,
+            comentarios_count: p.comentarios_count ?? 0,
+          })
+        );
+
+        setPostagens(listaPosts);
       }
-    } catch (error) {
-      console.log('Erro ao carregar perfil/postagens:', error);
+    } catch (error: any) {
+      console.log(
+        'Erro ao carregar perfil/postagens:',
+        error?.response?.data || error.message
+      );
       Alert.alert(
         'Erro',
         'Não foi possível carregar as informações do perfil. Tente novamente.'
@@ -136,7 +181,9 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
       if (asset.base64) {
-        setImgLocal(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
+        setImgLocal(
+          `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`
+        );
       } else if (asset.uri) {
         setImgLocal(asset.uri);
       }
@@ -144,37 +191,37 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
   };
 
   const handleSalvarEdicao = async () => {
-    if (!user || !token || !perfil) return;
+    if (!perfil || !token) return;
 
     try {
       setSalvando(true);
 
-      const payload: any = {};
-
-      if (ehTime) {
-        payload.nm_time = nomeEdit;
-        payload.tel_time = telEdit || null;
-        payload.sobre_time = sobreEdit || null;
-        if (imgLocal) {
-          payload.img_time = imgLocal;
-        }
-      } else {
-        payload.nm_usuario = nomeEdit;
-        payload.tel_usuario = telEdit || null;
-        payload.sobre = sobreEdit || null;
+      if (perfil.tipo === 'usuario') {
+        const payload: any = {
+          nm_usuario: nomeEdit,
+          tel_usuario: telEdit || null,
+          sobre: sobreEdit || null,
+        };
         if (imgLocal) {
           payload.img_usuario = imgLocal;
         }
-      }
 
-      if (ehTime && 'id_time' in user) {
-        await api.put(`/usuarios/time/${user.id_time}`, payload, {
+        await api.put(`/usuarios/usuario/${perfil.id}`, payload, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-      } else if (!ehTime && 'id_usuario' in user) {
-        await api.put(`/usuarios/usuario/${user.id_usuario}`, payload, {
+      } else {
+        const payload: any = {
+          nm_time: nomeEdit,
+          tel_time: telEdit || null,
+          sobre_time: sobreEdit || null,
+        };
+        if (imgLocal) {
+          payload.img_time = imgLocal;
+        }
+
+        await api.put(`/usuarios/time/${perfil.id}`, payload, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -192,30 +239,6 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
-  const nome =
-    ehTime && perfil && 'nm_time' in perfil
-      ? perfil.nm_time
-      : !ehTime && perfil && 'nm_usuario' in perfil
-      ? perfil.nm_usuario
-      : 'Perfil';
-
-  const email =
-    ehTime && perfil && 'email_time' in perfil
-      ? perfil.email_time
-      : !ehTime && perfil && 'email_usuario' in perfil
-      ? perfil.email_usuario
-      : '';
-
-  const imagemPerfil =
-    imgLocal ||
-    (ehTime && perfil && 'img_time' in perfil
-      ? perfil.img_time || null
-      : !ehTime && perfil && 'img_usuario' in perfil
-      ? perfil.img_usuario || null
-      : null);
-
-  const imagemMostrar = imagemPerfil || null;
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -223,6 +246,16 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
       </SafeAreaView>
     );
   }
+
+  if (!perfil) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={{ color: '#E5E7EB' }}>Nenhum perfil encontrado.</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const imagemMostrar = imgLocal || perfil.imagem || null;
 
   const Header = (
     <View style={styles.header}>
@@ -232,15 +265,15 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarInitial}>
-              {nome?.[0]?.toUpperCase() || '?'}
+              {perfil.nome?.[0]?.toUpperCase() || '?'}
             </Text>
           </View>
         )}
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{nome}</Text>
-          <Text style={styles.email}>{email}</Text>
-          {!editando && perfil && 'sobre' in perfil && perfil.sobre && (
+          <Text style={styles.name}>{perfil.nome}</Text>
+          <Text style={styles.email}>{perfil.email}</Text>
+          {!editando && perfil.sobre && (
             <Text style={styles.about}>{perfil.sobre}</Text>
           )}
         </View>
@@ -274,13 +307,15 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
 
           <View style={styles.editField}>
             <Text style={styles.editLabel}>
-              {ehTime ? 'Nome do time' : 'Seu nome'}
+              {perfil.tipo === 'time' ? 'Nome do time' : 'Seu nome'}
             </Text>
             <TextInput
               style={styles.editInput}
               value={nomeEdit}
               onChangeText={setNomeEdit}
-              placeholder={ehTime ? 'Nome do time' : 'Seu nome'}
+              placeholder={
+                perfil.tipo === 'time' ? 'Nome do time' : 'Seu nome completo'
+              }
               placeholderTextColor="#6B7280"
               maxLength={80}
             />
@@ -307,7 +342,11 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
               style={[styles.editInput, styles.editTextArea]}
               value={sobreEdit}
               onChangeText={setSobreEdit}
-              placeholder="Conte um pouco sobre você"
+              placeholder={
+                perfil.tipo === 'time'
+                  ? 'Fale sobre o time, história, objetivos...'
+                  : 'Conte um pouco sobre você'
+              }
               placeholderTextColor="#6B7280"
               multiline
               numberOfLines={3}
@@ -329,10 +368,13 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
       )}
 
       <Text style={styles.sectionTitle}>
-        {ehTime ? 'Postagens do time' : 'Suas postagens'}
+        {perfil.tipo === 'time' ? 'Postagens do time' : 'Suas postagens'}
       </Text>
     </View>
   );
+
+  const autorPerfil = perfil.nome;
+  const avatarPerfil = perfil.imagem || null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -342,16 +384,18 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
         keyExtractor={(item) => item.id_postagem.toString()}
         renderItem={({ item }) => (
           <PostCard
-            autor={item.autor}
-            avatar={item.avatar}
+            autor={autorPerfil}
+            avatar={avatarPerfil}
             texto_postagem={item.texto_postagem}
             categoria={item.categoria}
             tag={item.tag}
             img_postagem={item.img_postagem}
-            curtidas_count={item.curtidas_count}
-            comentarios_count={item.comentarios_count}
+            curtidas_count={item.curtidas_count ?? 0}
+            comentarios_count={item.comentarios_count ?? 0}
             onPress={() =>
-              navigation.navigate('PostDetails', { id_postagem: item.id_postagem })
+              navigation.navigate('PostDetails', {
+                id_postagem: item.id_postagem,
+              })
             }
             onComment={() =>
               navigation.navigate('PostDetails', {
@@ -364,7 +408,7 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
         contentContainerStyle={{ paddingBottom: 24 }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
-            {ehTime
+            {perfil.tipo === 'time'
               ? 'Esse time ainda não fez nenhuma postagem.'
               : 'Você ainda não postou nada.'}
           </Text>
@@ -464,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#374151',
-    backgroundColor: '#020617',
+    backgroundColor: '#213e60',
   },
   changePhotoButton: {
     paddingVertical: 8,

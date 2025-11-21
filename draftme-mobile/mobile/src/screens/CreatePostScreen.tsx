@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   input: {
-    backgroundColor: '#182d46ff',
+    backgroundColor: '#202020ff',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#374151',
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   imagePicker: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: '#ffffffff',
     paddingVertical: 10,
     paddingHorizontal: 16,
     alignItems: 'center',

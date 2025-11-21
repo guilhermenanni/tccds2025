@@ -202,14 +202,14 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 3,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   logoImage: {
     width: 150,
-    height: 50,
+    height: 90,
   },
   logout: {
     color: '#e28e45',

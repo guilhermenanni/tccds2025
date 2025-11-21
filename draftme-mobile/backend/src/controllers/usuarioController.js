@@ -4,6 +4,11 @@ import { createPool } from '../config/db.js';
 
 const pool = createPool();
 
+/* ===========================================================
+ *  PERFIL / POSTAGENS DE USUÁRIO
+ * ===========================================================
+ */
+
 /**
  * GET /usuarios/usuario/:id
  * Retorna os dados do usuário (perfil)
@@ -50,6 +55,7 @@ export const obterPerfilUsuario = async (req, res) => {
 /**
  * PUT /usuarios/usuario/:id
  * Atualiza os dados do usuário (nome, telefone, imagem, sobre)
+ * (não mexe em email, cpf, data de nascimento, etc.)
  */
 export const atualizarPerfilUsuario = async (req, res) => {
   try {
@@ -61,7 +67,6 @@ export const atualizarPerfilUsuario = async (req, res) => {
       sobre,
     } = req.body;
 
-    // Atualiza apenas os campos que fazem sentido para o perfil
     await pool.query(
       `
         UPDATE tb_usuario
@@ -81,7 +86,6 @@ export const atualizarPerfilUsuario = async (req, res) => {
       ]
     );
 
-    // Busca o registro atualizado para retornar
     const [rows] = await pool.query(
       `
         SELECT
@@ -156,8 +160,13 @@ export const listarPostagensUsuario = async (req, res) => {
 };
 
 /* ===========================================================
- *  PERFIL / POSTAGENS DE TIME (NOVO)
+ *  PERFIL / POSTAGENS DE TIME
  * ===========================================================
+ *
+ * TABELA tb_time (do schema.sql):
+ *  id_time, nm_time, email_time, time_cnpj, categoria_time,
+ *  senha_time, esporte_time, sobre_time, img_time
+ *  (localizacao_time foi dropada, não existe mais)
  */
 
 /**
@@ -174,10 +183,11 @@ export const obterPerfilTime = async (req, res) => {
           id_time,
           nm_time,
           email_time,
-          tel_time,
-          img_time,
+          time_cnpj,
+          categoria_time,
+          esporte_time,
           sobre_time,
-          localizacao_time
+          img_time
         FROM tb_time
         WHERE id_time = ?
       `,
@@ -206,8 +216,8 @@ export const obterPerfilTime = async (req, res) => {
 
 /**
  * PUT /usuarios/time/:id
- * Atualiza os dados do time (nome, telefone, imagem, sobre, localizacao)
- * Requer token de TIME, e somente o próprio time pode editar.
+ * Atualiza os dados do time (nome, esporte, sobre, imagem)
+ * Usa req.user.type === 'time' pra garantir que é o próprio time
  */
 export const atualizarPerfilTime = async (req, res) => {
   try {
@@ -223,32 +233,30 @@ export const atualizarPerfilTime = async (req, res) => {
 
     const {
       nm_time,
-      tel_time,
+      esporte_time,
       img_time,
       sobre_time,
-      sobre, // se vier "sobre" do front, tratamos igual
-      localizacao_time,
+      sobre, // se o front mandar "sobre" ao invés de "sobre_time"
     } = req.body;
 
-    const sobreFinal = typeof sobre_time !== 'undefined' ? sobre_time : sobre ?? null;
+    const sobreFinal =
+      typeof sobre_time !== 'undefined' ? sobre_time : (sobre ?? null);
 
     await pool.query(
       `
         UPDATE tb_time
         SET
           nm_time = COALESCE(?, nm_time),
-          tel_time = COALESCE(?, tel_time),
-          img_time = COALESCE(?, img_time),
+          esporte_time = COALESCE(?, esporte_time),
           sobre_time = COALESCE(?, sobre_time),
-          localizacao_time = COALESCE(?, localizacao_time)
+          img_time = COALESCE(?, img_time)
         WHERE id_time = ?
       `,
       [
         nm_time ?? null,
-        tel_time ?? null,
-        img_time ?? null,
+        esporte_time ?? null,
         sobreFinal,
-        localizacao_time ?? null,
+        img_time ?? null,
         id,
       ]
     );
@@ -259,10 +267,11 @@ export const atualizarPerfilTime = async (req, res) => {
           id_time,
           nm_time,
           email_time,
-          tel_time,
-          img_time,
+          time_cnpj,
+          categoria_time,
+          esporte_time,
           sobre_time,
-          localizacao_time
+          img_time
         FROM tb_time
         WHERE id_time = ?
       `,

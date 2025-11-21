@@ -1,5 +1,4 @@
-// backend/src/routes/usuarioRoutes.js
-
+// draftme-mobile/backend/src/routes/usuarioRoutes.js
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import {

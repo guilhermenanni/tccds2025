@@ -18,10 +18,7 @@ import {
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -40,25 +37,49 @@ interface Seletiva {
 }
 
 const SeletivasScreen: React.FC = () => {
-  const { token } = useAuth();
+  const { token, tipoSelecionado } = useAuth();
+  const ehUsuario = tipoSelecionado === 'usuario';
+
   const [seletivas, setSeletivas] = useState<Seletiva[]>([]);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [expandidaId, setExpandidaId] = useState<number | null>(null);
+  const [inscritasIds, setInscritasIds] = useState<number[]>([]);
   const [inscrevendoId, setInscrevendoId] = useState<number | null>(null);
+
   const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
 
   const carregarSeletivas = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/seletivas');
-      setSeletivas(response.data.data || []);
-    } catch (error) {
-      console.log('Erro ao carregar seletivas:', error);
-      Alert.alert(
-        'Erro',
-        'Não foi possível carregar as seletivas. Tente novamente.'
+
+      const [todasRes, minhasRes] = await Promise.all([
+        api.get('/seletivas'),
+        ehUsuario && token
+          ? api.get('/seletivas/minhas', {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          : Promise.resolve({ data: { data: [] } }),
+      ]);
+
+      const todas: Seletiva[] = todasRes.data?.data || [];
+      setSeletivas(todas);
+
+      if (ehUsuario && minhasRes && minhasRes.data?.data) {
+        const ids = (minhasRes.data.data as any[]).map(
+          (s) => s.id_seletiva as number
+        );
+        setInscritasIds(ids);
+      } else {
+        setInscritasIds([]);
+      }
+    } catch (e: any) {
+      console.log(
+        'Erro ao carregar seletivas:',
+        e?.response?.data || e.message
       );
+      Alert.alert('Erro', 'Não foi possível carregar as seletivas.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,19 +88,29 @@ const SeletivasScreen: React.FC = () => {
 
   useEffect(() => {
     carregarSeletivas();
-  }, []);
+  }, [tipoSelecionado, token]);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    carregarSeletivas();
+    await carregarSeletivas();
   };
 
-  const handleToggleExpand = (id: number) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId((prev) => (prev === id ? null : id));
+  const formatarDataBr = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const ano = d.getFullYear();
+    return `${dia}/${mes}/${ano}`;
   };
+
+  const estaInscrito = (id: number) => inscritasIds.includes(id);
 
   const handleInscrever = async (id_seletiva: number) => {
+    if (!ehUsuario) {
+      Alert.alert('Atenção', 'Apenas jogadores podem se inscrever em seletivas.');
+      return;
+    }
     if (!token) {
       Alert.alert('Atenção', 'Você precisa estar logado para se inscrever.');
       return;
@@ -91,23 +122,57 @@ const SeletivasScreen: React.FC = () => {
         `/seletivas/${id_seletiva}/inscrever`,
         {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-
-      Alert.alert('Sucesso', 'Inscrição realizada com sucesso!');
-    } catch (error: any) {
-      console.log('Erro ao inscrever:', error?.response?.data || error.message);
-      Alert.alert(
-        'Erro',
-        error?.response?.data?.message ||
-          'Não foi possível realizar a inscrição.'
+      LayoutAnimation.easeInEaseOut();
+      setInscritasIds((prev) => [...prev, id_seletiva]);
+      Alert.alert('Inscrição feita', 'Você se inscreveu nesta seletiva!');
+    } catch (e: any) {
+      console.log(
+        'Erro ao se inscrever na seletiva:',
+        e?.response?.data || e.message
       );
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.erro ||
+        'Não foi possível realizar a inscrição.';
+      Alert.alert('Erro', msg);
     } finally {
       setInscrevendoId(null);
     }
+  };
+
+  const handleCancelarInscricao = async (id_seletiva: number) => {
+    if (!ehUsuario) return;
+    if (!token) return;
+
+    try {
+      setInscrevendoId(id_seletiva);
+      await api.delete(`/seletivas/${id_seletiva}/inscrever`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      LayoutAnimation.easeInEaseOut();
+      setInscritasIds((prev) => prev.filter((id) => id !== id_seletiva));
+      Alert.alert('Inscrição cancelada', 'Você saiu desta seletiva.');
+    } catch (e: any) {
+      console.log(
+        'Erro ao cancelar inscrição:',
+        e?.response?.data || e.message
+      );
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.erro ||
+        'Não foi possível cancelar a inscrição.';
+      Alert.alert('Erro', msg);
+    } finally {
+      setInscrevendoId(null);
+    }
+  };
+
+  const toggleExpandir = (id_seletiva: number) => {
+    LayoutAnimation.easeInEaseOut();
+    setExpandidaId((prev) => (prev === id_seletiva ? null : id_seletiva));
   };
 
   const categorias = Array.from(
@@ -122,21 +187,22 @@ const SeletivasScreen: React.FC = () => {
     ? seletivas.filter((s) => s.categoria === filtroCategoria)
     : seletivas;
 
-  const renderSeletiva = ({ item }: { item: Seletiva }) => {
-    const expanded = expandedId === item.id_seletiva;
+  const renderItem = ({ item }: { item: Seletiva }) => {
+    const expandida = expandidaId === item.id_seletiva;
+    const inscrito = estaInscrito(item.id_seletiva);
 
     return (
       <TouchableOpacity
         style={styles.card}
         activeOpacity={0.9}
-        onPress={() => handleToggleExpand(item.id_seletiva)}
+        onPress={() => toggleExpandir(item.id_seletiva)}
       >
-        <View style={styles.rowBetween}>
-          <View style={{ flex: 1, paddingRight: 8 }}>
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
             <Text style={styles.titulo}>{item.titulo}</Text>
             <Text style={styles.time}>{item.nm_time}</Text>
-            <Text style={styles.infoLinha}>
-              {item.cidade} • {item.data_seletiva} • {item.hora}
+            <Text style={styles.meta}>
+              {item.cidade} • {formatarDataBr(item.data_seletiva)} • {item.hora}
             </Text>
             {!!item.categoria && (
               <Text style={styles.categoria}>{item.categoria}</Text>
@@ -144,49 +210,69 @@ const SeletivasScreen: React.FC = () => {
           </View>
         </View>
 
-        {expanded && (
+        {expandida && (
           <View style={styles.detalhes}>
-            {!!item.sobre && (
-              <Text style={styles.sobre}>{item.sobre}</Text>
-            )}
+            {!!item.sobre && <Text style={styles.sobre}>{item.sobre}</Text>}
             {!!item.localizacao && (
               <Text style={styles.local}>
-                Local: <Text style={styles.localValor}>{item.localizacao}</Text>
+                Local:{' '}
+                <Text style={styles.localValor}>{item.localizacao}</Text>
+              </Text>
+            )}
+            {!!item.subcategoria && (
+              <Text style={styles.local}>
+                Tipo:{' '}
+                <Text style={styles.localValor}>{item.subcategoria}</Text>
               </Text>
             )}
 
-            <View style={styles.actionsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.buttonPrimario,
-                  inscrevendoId === item.id_seletiva && styles.buttonDisabled,
-                ]}
-                onPress={() => handleInscrever(item.id_seletiva)}
-                disabled={inscrevendoId === item.id_seletiva}
-              >
-                {inscrevendoId === item.id_seletiva ? (
-                  <ActivityIndicator color="#F9FAFB" />
+            {ehUsuario ? (
+              <View style={styles.actionsRow}>
+                {inscrito ? (
+                  <TouchableOpacity
+                    style={[styles.inscreverButton, styles.cancelarButton]}
+                    onPress={() => handleCancelarInscricao(item.id_seletiva)}
+                    disabled={inscrevendoId === item.id_seletiva}
+                  >
+                    {inscrevendoId === item.id_seletiva ? (
+                      <ActivityIndicator color="#F9FAFB" />
+                    ) : (
+                      <Text style={styles.inscreverText}>
+                        Cancelar inscrição
+                      </Text>
+                    )}
+                  </TouchableOpacity>
                 ) : (
-                  <Text style={styles.inscreverText}>Inscrever-se</Text>
+                  <TouchableOpacity
+                    style={styles.inscreverButton}
+                    onPress={() => handleInscrever(item.id_seletiva)}
+                    disabled={inscrevendoId === item.id_seletiva}
+                  >
+                    {inscrevendoId === item.id_seletiva ? (
+                      <ActivityIndicator color="#F9FAFB" />
+                    ) : (
+                      <Text style={styles.inscreverText}>Inscrever-se</Text>
+                    )}
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
-            </View>
+              </View>
+            ) : (
+              <Text style={styles.infoTime}>
+                (Faça login como jogador para se inscrever)
+              </Text>
+            )}
           </View>
         )}
 
-        {!expanded && (
-          <Text style={styles.verMais}>
-            Toque para ver mais detalhes...
-          </Text>
+        {!expandida && (
+          <Text style={styles.verMais}>Toque para ver mais detalhes...</Text>
         )}
       </TouchableOpacity>
     );
   };
 
   const renderFiltroCategoria = () => {
-    if (!categorias.length) {
-      return null;
-    }
+    if (!categorias.length) return null;
 
     return (
       <View style={styles.filtrosContainer}>
@@ -220,10 +306,8 @@ const SeletivasScreen: React.FC = () => {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#e28e45" />
-        </View>
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#e28e45" />
       </SafeAreaView>
     );
   }
@@ -235,7 +319,7 @@ const SeletivasScreen: React.FC = () => {
       <FlatList
         data={seletivasFiltradas}
         keyExtractor={(item) => String(item.id_seletiva)}
-        renderItem={renderSeletiva}
+        renderItem={renderItem}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -265,16 +349,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#182d46ff',
   },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerTitle: {
     color: '#F9FAFB',
     fontSize: 20,
     fontWeight: '700',
     paddingHorizontal: 16,
     paddingVertical: 16,
-  },
-  center: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   card: {
     backgroundColor: '#213e60',
@@ -285,9 +369,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#14263b',
   },
-  rowBetween: {
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   titulo: {
@@ -300,7 +383,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  infoLinha: {
+  meta: {
     color: '#9CA3AF',
     fontSize: 12,
     marginTop: 4,
@@ -328,17 +411,13 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     marginTop: 10,
-    gap: 8,
   },
-  buttonPrimario: {
+  inscreverButton: {
     flex: 1,
     backgroundColor: '#e28e45',
     borderRadius: 999,
     paddingVertical: 8,
     alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.7,
   },
   cancelarButton: {
     backgroundColor: '#EF4444',
@@ -347,6 +426,11 @@ const styles = StyleSheet.create({
     color: '#F9FAFB',
     fontSize: 13,
     fontWeight: '600',
+  },
+  infoTime: {
+    marginTop: 8,
+    color: '#9CA3AF',
+    fontSize: 12,
   },
   verMais: {
     color: '#6B7280',

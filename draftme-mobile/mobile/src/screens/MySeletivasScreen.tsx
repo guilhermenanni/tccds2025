@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Alert,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -17,30 +18,38 @@ import { useAuth } from '../context/AuthContext';
 interface Seletiva {
   id_seletiva: number;
   titulo: string;
-  sobre: string;
-  cidade: string;
-  estado: string;
-  data: string;
-  hora: string;
+  sobre?: string | null;
+  localizacao?: string | null;
+  cidade?: string | null;
+  data_seletiva?: string | null;
+  data?: string | null; // fallback pra caso o backend mande "data"
+  hora?: string | null;
+  categoria?: string | null;
+  subcategoria?: string | null;
   nm_time: string;
   img_time?: string | null;
 }
 
-const MySeletivasScreen = () => {
+const MySeletivasScreen: React.FC = () => {
   const { token, tipoSelecionado } = useAuth();
+  const ehTime = tipoSelecionado === 'time';
+  const ehUsuario = tipoSelecionado === 'usuario';
+
   const [seletivas, setSeletivas] = useState<Seletiva[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const ehTime = tipoSelecionado === 'time';
+  const [inscrevendoId, setInscrevendoId] = useState<number | null>(null);
 
   const carregarSeletivas = async () => {
     if (!token) {
       setLoading(false);
+      setSeletivas([]);
       return;
     }
 
     try {
+      setLoading(true);
+
       const response = await api.get('/seletivas/minhas', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -50,18 +59,21 @@ const MySeletivasScreen = () => {
       const lista: Seletiva[] = (response.data.data || []).map((item: any) => ({
         id_seletiva: item.id_seletiva,
         titulo: item.titulo,
-        sobre: item.sobre,
-        cidade: item.cidade,
-        estado: item.estado,
-        data: item.data,
-        hora: item.hora,
+        sobre: item.sobre ?? null,
+        localizacao: item.localizacao ?? null,
+        cidade: item.cidade ?? null,
+        data_seletiva: item.data_seletiva ?? item.data ?? null,
+        data: item.data ?? null,
+        hora: item.hora ?? null,
+        categoria: item.categoria ?? null,
+        subcategoria: item.subcategoria ?? null,
         nm_time: item.nm_time,
         img_time: item.img_time ?? null,
       }));
 
       setSeletivas(lista);
-    } catch (error) {
-      console.log('Erro ao carregar seletivas do usuário/time', error);
+    } catch (error: any) {
+      console.log('Erro ao carregar seletivas do usuário/time', error?.response?.data || error.message);
       Alert.alert(
         'Erro',
         'Não foi possível carregar suas seletivas. Tente novamente mais tarde.'
@@ -74,33 +86,100 @@ const MySeletivasScreen = () => {
 
   useEffect(() => {
     carregarSeletivas();
-  }, [tipoSelecionado]);
+  }, [tipoSelecionado, token]);
 
   const onRefresh = () => {
     setRefreshing(true);
     carregarSeletivas();
   };
 
-  const renderItem = ({ item }: { item: Seletiva }) => (
-    <View style={styles.card}>
-      <Text style={styles.titulo}>{item.titulo}</Text>
-      <Text style={styles.subtitulo}>
-        {item.cidade} - {item.estado}
-      </Text>
-      <Text style={styles.info}>
-        {item.data} às {item.hora}
-      </Text>
-      <Text style={styles.time}>{item.nm_time}</Text>
-      <Text style={styles.sobre} numberOfLines={3}>
-        {item.sobre}
-      </Text>
-    </View>
-  );
+  const formatarDataBr = (valor?: string | null) => {
+    if (!valor) return '';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return valor;
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const ano = d.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+  };
+
+  const handleCancelarInscricao = async (id_seletiva: number) => {
+    if (!ehUsuario) return; // time não cancela inscrição
+    if (!token) return;
+
+    try {
+      setInscrevendoId(id_seletiva);
+      await api.delete(`/seletivas/${id_seletiva}/inscrever`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // remove da lista local
+      setSeletivas((prev) => prev.filter((s) => s.id_seletiva !== id_seletiva));
+
+      Alert.alert('Inscrição cancelada', 'Você saiu desta seletiva.');
+    } catch (e: any) {
+      console.log(
+        'Erro ao cancelar inscrição:',
+        e?.response?.data || e.message
+      );
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.erro ||
+        'Não foi possível cancelar a inscrição.';
+      Alert.alert('Erro', msg);
+    } finally {
+      setInscrevendoId(null);
+    }
+  };
 
   const tituloTela = ehTime ? 'Seletivas do time' : 'Minhas seletivas';
   const textoVazio = ehTime
     ? 'Seu time ainda não criou nenhuma seletiva.'
     : 'Você ainda não está inscrito em nenhuma seletiva.';
+
+  const renderItem = ({ item }: { item: Seletiva }) => {
+    const dataBr =
+      formatarDataBr(item.data_seletiva || item.data) || 'Data não informada';
+
+    return (
+      <View style={styles.card}>
+        <Text style={styles.titulo}>{item.titulo}</Text>
+        <Text style={styles.time}>{item.nm_time}</Text>
+        <Text style={styles.info}>
+          {item.localizacao || item.cidade || 'Local não informado'}
+        </Text>
+        <Text style={styles.info}>
+          {dataBr}
+          {item.hora ? ` • ${item.hora}` : ''}
+        </Text>
+        {!!item.categoria && (
+          <Text style={styles.categoria}>{item.categoria}</Text>
+        )}
+
+        {!!item.sobre && (
+          <Text style={styles.sobre} numberOfLines={3}>
+            {item.sobre}
+          </Text>
+        )}
+
+        {ehUsuario && (
+          <TouchableOpacity
+            style={[styles.button, styles.cancelarButton]}
+            onPress={() => handleCancelarInscricao(item.id_seletiva)}
+            disabled={inscrevendoId === item.id_seletiva}
+          >
+            {inscrevendoId === item.id_seletiva ? (
+              <ActivityIndicator color="#F9FAFB" />
+            ) : (
+              <Text style={styles.buttonText}>Cancelar inscrição</Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   if (loading && !refreshing) {
     return (
@@ -182,27 +261,40 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  subtitulo: {
-    color: '#E5E7EB',
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  info: {
-    color: '#9CA3AF',
-    fontSize: 12,
     marginBottom: 2,
   },
   time: {
     color: '#e28e45',
     fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  info: {
+    color: '#E5E7EB',
+    fontSize: 12,
+  },
+  categoria: {
+    color: '#e28e45',
+    fontSize: 12,
+    marginTop: 4,
   },
   sobre: {
     color: '#E5E7EB',
     fontSize: 13,
+    marginTop: 6,
+  },
+  button: {
+    marginTop: 10,
+    borderRadius: 999,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  cancelarButton: {
+    backgroundColor: '#EF4444',
+  },
+  buttonText: {
+    color: '#F9FAFB',
+    fontWeight: '600',
+    fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
