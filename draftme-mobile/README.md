@@ -32,25 +32,6 @@ Ou:
 mysql -u root -p db_draftme < sql/schema.sql
 ```
 
-### 1.3. Configurar `.env`
-
-Crie um arquivo `.env` dentro de `backend/` baseado no `.env.example`:
-
-```env
-PORT=3000
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=sua_senha_aqui
-DB_NAME=db_draftme
-JWT_SECRET=uma_chave_secreta_bem_forte
-```
-
-### 1.4. Rodar a API
-
-```bash
-npm run dev
-```
-
 A API sobe em `http://localhost:3000`.
 
 Rotas principais (resumo):

@@ -1,3 +1,5 @@
+// mobile/src/screens/SeletivasScreen.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -16,7 +18,10 @@ import {
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -31,75 +36,50 @@ interface Seletiva {
   categoria?: string | null;
   subcategoria?: string | null;
   nm_time: string;
+  img_time?: string | null;
 }
 
 const SeletivasScreen: React.FC = () => {
-  const { tipoSelecionado, token } = useAuth();
+  const { token } = useAuth();
   const [seletivas, setSeletivas] = useState<Seletiva[]>([]);
-  const [inscritasIds, setInscritasIds] = useState<number[]>([]);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [inscrevendoId, setInscrevendoId] = useState<number | null>(null);
-  const [expandidaId, setExpandidaId] = useState<number | null>(null);
-
-  const ehUsuario = tipoSelecionado === 'usuario';
+  const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
 
   const carregarSeletivas = async () => {
     try {
       setLoading(true);
-      const [todasRes, minhasRes] = await Promise.all([
-        api.get('/seletivas'),
-        ehUsuario && token
-          ? api.get('/seletivas/minhas', {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-          : Promise.resolve({ data: { data: [] } }),
-      ]);
-
-      setSeletivas(todasRes.data.data || []);
-
-      if (ehUsuario && minhasRes && minhasRes.data?.data) {
-        const ids = (minhasRes.data.data as Seletiva[]).map(
-          (s) => s.id_seletiva
-        );
-        setInscritasIds(ids);
-      } else {
-        setInscritasIds([]);
-      }
-    } catch (e: any) {
-      console.log('Erro ao carregar seletivas:', e?.response?.data || e.message);
-      Alert.alert('Erro', 'Não foi possível carregar as seletivas.');
+      const response = await api.get('/seletivas');
+      setSeletivas(response.data.data || []);
+    } catch (error) {
+      console.log('Erro ao carregar seletivas:', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível carregar as seletivas. Tente novamente.'
+      );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     carregarSeletivas();
-  }, [tipoSelecionado, token]);
+  }, []);
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await carregarSeletivas();
-    setRefreshing(false);
+    carregarSeletivas();
   };
 
-  const formatarDataBr = (iso: string) => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const ano = d.getFullYear();
-    return `${dia}/${mes}/${ano}`;
+  const handleToggleExpand = (id: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedId((prev) => (prev === id ? null : id));
   };
-
-  const estaInscrito = (id: number) => inscritasIds.includes(id);
 
   const handleInscrever = async (id_seletiva: number) => {
-    if (!ehUsuario) {
-      Alert.alert('Atenção', 'Apenas jogadores podem se inscrever em seletivas.');
-      return;
-    }
     if (!token) {
       Alert.alert('Atenção', 'Você precisa estar logado para se inscrever.');
       return;
@@ -111,118 +91,76 @@ const SeletivasScreen: React.FC = () => {
         `/seletivas/${id_seletiva}/inscrever`,
         {},
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      LayoutAnimation.easeInEaseOut();
-      setInscritasIds((prev) => [...prev, id_seletiva]);
-      Alert.alert('Inscrição feita', 'Você se inscreveu nesta seletiva!');
-    } catch (e: any) {
-      console.log('Erro ao se inscrever na seletiva:', e?.response?.data || e.message);
-      const msg =
-        e?.response?.data?.message ||
-        e?.response?.data?.erro ||
-        'Não foi possível realizar a inscrição.';
-      Alert.alert('Erro', msg);
+
+      Alert.alert('Sucesso', 'Inscrição realizada com sucesso!');
+    } catch (error: any) {
+      console.log('Erro ao inscrever:', error?.response?.data || error.message);
+      Alert.alert(
+        'Erro',
+        error?.response?.data?.message ||
+          'Não foi possível realizar a inscrição.'
+      );
     } finally {
       setInscrevendoId(null);
     }
   };
 
-  const handleCancelarInscricao = async (id_seletiva: number) => {
-    if (!ehUsuario) return;
-    if (!token) return;
+  const categorias = Array.from(
+    new Set(
+      seletivas
+        .map((s) => s.categoria)
+        .filter((c): c is string => !!c && c.trim().length > 0)
+    )
+  );
 
-    try {
-      setInscrevendoId(id_seletiva);
-      await api.delete(`/seletivas/${id_seletiva}/inscrever`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      LayoutAnimation.easeInEaseOut();
-      setInscritasIds((prev) => prev.filter((id) => id !== id_seletiva));
-      Alert.alert('Inscrição cancelada', 'Você saiu desta seletiva.');
-    } catch (e: any) {
-      console.log('Erro ao cancelar inscrição:', e?.response?.data || e.message);
-      const msg =
-        e?.response?.data?.message ||
-        e?.response?.data?.erro ||
-        'Não foi possível cancelar a inscrição.';
-      Alert.alert('Erro', msg);
-    } finally {
-      setInscrevendoId(null);
-    }
-  };
+  const seletivasFiltradas = filtroCategoria
+    ? seletivas.filter((s) => s.categoria === filtroCategoria)
+    : seletivas;
 
-  const toggleExpandir = (id_seletiva: number) => {
-    LayoutAnimation.easeInEaseOut();
-    setExpandidaId((prev) => (prev === id_seletiva ? null : id_seletiva));
-  };
-
-  const renderItem = ({ item }: { item: Seletiva }) => {
-    const inscrito = estaInscrito(item.id_seletiva);
-    const expandida = expandidaId === item.id_seletiva;
+  const renderSeletiva = ({ item }: { item: Seletiva }) => {
+    const expanded = expandedId === item.id_seletiva;
 
     return (
-      <View style={styles.card}>
-        <TouchableOpacity onPress={() => toggleExpandir(item.id_seletiva)}>
-          <Text style={styles.titulo}>{item.titulo}</Text>
-          <Text style={styles.time}>{item.nm_time}</Text>
-          <Text style={styles.meta}>
-            {item.cidade} • {formatarDataBr(item.data_seletiva)} • {item.hora}
-          </Text>
-          {item.categoria && (
-            <Text style={styles.categoria}>{item.categoria}</Text>
-          )}
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.9}
+        onPress={() => handleToggleExpand(item.id_seletiva)}
+      >
+        <View style={styles.rowBetween}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={styles.titulo}>{item.titulo}</Text>
+            <Text style={styles.time}>{item.nm_time}</Text>
+            <Text style={styles.infoLinha}>
+              {item.cidade} • {item.data_seletiva} • {item.hora}
+            </Text>
+            {!!item.categoria && (
+              <Text style={styles.categoria}>{item.categoria}</Text>
+            )}
+          </View>
+        </View>
 
-        {expandida && (
+        {expanded && (
           <View style={styles.detalhes}>
-            {item.sobre && (
+            {!!item.sobre && (
               <Text style={styles.sobre}>{item.sobre}</Text>
             )}
-            {item.localizacao && (
+            {!!item.localizacao && (
               <Text style={styles.local}>
                 Local: <Text style={styles.localValor}>{item.localizacao}</Text>
               </Text>
             )}
-            {item.subcategoria && (
-              <Text style={styles.local}>
-                Tipo:{' '}
-                <Text style={styles.localValor}>{item.subcategoria}</Text>
-              </Text>
-            )}
-          </View>
-        )}
 
-        {ehUsuario && (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={[
-                styles.buttonSecundario,
-                expandida && styles.buttonSecundarioAtivo,
-              ]}
-              onPress={() => toggleExpandir(item.id_seletiva)}
-            >
-              <Text style={styles.buttonSecundarioText}>
-                {expandida ? 'Ocultar detalhes' : 'Ver detalhes'}
-              </Text>
-            </TouchableOpacity>
-
-            {inscrito ? (
+            <View style={styles.actionsRow}>
               <TouchableOpacity
-                style={[styles.inscreverButton, styles.cancelarButton]}
-                onPress={() => handleCancelarInscricao(item.id_seletiva)}
-                disabled={inscrevendoId === item.id_seletiva}
-              >
-                {inscrevendoId === item.id_seletiva ? (
-                  <ActivityIndicator color="#F9FAFB" />
-                ) : (
-                  <Text style={styles.inscreverText}>Cancelar inscrição</Text>
-                )}
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.inscreverButton}
+                style={[
+                  styles.buttonPrimario,
+                  inscrevendoId === item.id_seletiva && styles.buttonDisabled,
+                ]}
                 onPress={() => handleInscrever(item.id_seletiva)}
                 disabled={inscrevendoId === item.id_seletiva}
               >
@@ -232,49 +170,88 @@ const SeletivasScreen: React.FC = () => {
                   <Text style={styles.inscreverText}>Inscrever-se</Text>
                 )}
               </TouchableOpacity>
-            )}
+            </View>
           </View>
         )}
 
-        {!ehUsuario && expandida && (
-          <Text style={styles.infoTime}>
-            (Faça login como jogador para se inscrever)
+        {!expanded && (
+          <Text style={styles.verMais}>
+            Toque para ver mais detalhes...
           </Text>
         )}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderFiltroCategoria = () => {
+    if (!categorias.length) {
+      return null;
+    }
+
+    return (
+      <View style={styles.filtrosContainer}>
+        <Text style={styles.filtrosLabel}>Filtrar por categoria:</Text>
+        <View style={styles.filtrosRow}>
+          <TouchableOpacity
+            style={[
+              styles.filtroChip,
+              !filtroCategoria && styles.filtroChipAtivo,
+            ]}
+            onPress={() => setFiltroCategoria(null)}
+          >
+            <Text style={styles.filtroChipTexto}>Todas</Text>
+          </TouchableOpacity>
+          {categorias.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.filtroChip,
+                filtroCategoria === cat && styles.filtroChipAtivo,
+              ]}
+              onPress={() => setFiltroCategoria(cat)}
+            >
+              <Text style={styles.filtroChipTexto}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
     );
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#22C55E" />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#e28e45" />
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.headerTitle}>Seletivas</Text>
-
+      <Text style={styles.headerTitle}>Seletivas disponíveis</Text>
+      {renderFiltroCategoria()}
       <FlatList
-        data={seletivas}
-        keyExtractor={(item) => item.id_seletiva.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={
-          seletivas.length === 0 ? styles.emptyContainer : { paddingBottom: 24 }
-        }
+        data={seletivasFiltradas}
+        keyExtractor={(item) => String(item.id_seletiva)}
+        renderItem={renderSeletiva}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#22C55E"
+            tintColor="#e28e45"
           />
         }
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            Nenhuma seletiva disponível no momento.
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              Nenhuma seletiva disponível no momento.
+            </Text>
+          </View>
+        }
+        contentContainerStyle={
+          seletivasFiltradas.length === 0 ? { flexGrow: 1 } : undefined
         }
       />
     </SafeAreaView>
@@ -286,7 +263,7 @@ export default SeletivasScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
   },
   headerTitle: {
     color: '#F9FAFB',
@@ -300,29 +277,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
+    backgroundColor: '#213e60',
+    borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#0B1120',
-    borderRadius: 16,
-    padding: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#14263b',
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   titulo: {
     color: '#F9FAFB',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   time: {
-    color: '#E5E7EB',
-    fontSize: 14,
+    color: '#e28e45',
+    fontSize: 13,
     marginTop: 2,
   },
-  meta: {
+  infoLinha: {
     color: '#9CA3AF',
     fontSize: 12,
     marginTop: 4,
   },
   categoria: {
-    color: '#38BDF8',
+    color: '#e28e45',
     fontSize: 12,
     marginTop: 2,
   },
@@ -346,27 +330,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     gap: 8,
   },
-  buttonSecundario: {
+  buttonPrimario: {
     flex: 1,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#374151',
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  buttonSecundarioAtivo: {
-    backgroundColor: '#111827',
-  },
-  buttonSecundarioText: {
-    color: '#E5E7EB',
-    fontSize: 13,
-  },
-  inscreverButton: {
-    flex: 1,
-    backgroundColor: '#22C55E',
+    backgroundColor: '#e28e45',
     borderRadius: 999,
     paddingVertical: 8,
     alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   cancelarButton: {
     backgroundColor: '#EF4444',
@@ -376,10 +348,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  infoTime: {
+  verMais: {
     color: '#6B7280',
     fontSize: 11,
     marginTop: 8,
+  },
+  filtrosContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  filtrosLabel: {
+    color: '#E5E7EB',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  filtrosRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filtroChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#374151',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  filtroChipAtivo: {
+    backgroundColor: '#213e60',
+    borderColor: '#e28e45',
+  },
+  filtroChipTexto: {
+    color: '#E5E7EB',
+    fontSize: 12,
   },
   emptyContainer: {
     flexGrow: 1,

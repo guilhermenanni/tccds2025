@@ -1,5 +1,17 @@
+// mobile/src/screens/PostDetailsScreen.tsx
+
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, FlatList, TextInput, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { api } from '../api/client';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../context/AuthContext';
@@ -19,18 +31,24 @@ const PostDetailsScreen = ({ route }: any) => {
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [loading, setLoading] = useState(true);
   const [comentarioTexto, setComentarioTexto] = useState('');
+  const [sending, setSending] = useState(false);
   const { user } = useAuth();
 
   const loadData = async () => {
     try {
       const postResponse = await api.get('/postagens');
-      const post = (postResponse.data.data || []).find((p: any) => p.id_postagem === id_postagem);
+      const post = (postResponse.data.data || []).find(
+        (p: any) => p.id_postagem === id_postagem
+      );
       setPostagem(post || null);
 
-      const comentariosResponse = await api.get(`/comentarios/postagem/${id_postagem}`);
+      const comentariosResponse = await api.get(
+        `/comentarios/postagem/${id_postagem}`
+      );
       setComentarios(comentariosResponse.data.data || []);
     } catch (e) {
       console.log('Erro ao carregar detalhes da postagem', e);
+      Alert.alert('Erro', 'Não foi possível carregar os detalhes da postagem.');
     } finally {
       setLoading(false);
     }
@@ -48,16 +66,21 @@ const PostDetailsScreen = ({ route }: any) => {
     if (!comentarioTexto.trim()) {
       return;
     }
+
     try {
+      setSending(true);
       await api.post('/comentarios', {
         id_postagem,
         texto_comentario: comentarioTexto.trim(),
       });
+
       setComentarioTexto('');
-      loadData();
+      await loadData();
     } catch (e) {
       console.log('Erro ao comentar', e);
-      Alert.alert('Erro', 'Não foi possível enviar o comentário');
+      Alert.alert('Erro', 'Não foi possível enviar o comentário.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -65,7 +88,7 @@ const PostDetailsScreen = ({ route }: any) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <ActivityIndicator color="#22C55E" />
+          <ActivityIndicator color="#e28e45" />
         </View>
       </SafeAreaView>
     );
@@ -106,8 +129,9 @@ const PostDetailsScreen = ({ route }: any) => {
         data={comentarios}
         keyExtractor={(item) => String(item.id_comentario)}
         renderItem={renderComentario}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
+
       <View style={styles.commentInputBox}>
         <TextInput
           style={styles.commentInput}
@@ -116,8 +140,16 @@ const PostDetailsScreen = ({ route }: any) => {
           value={comentarioTexto}
           onChangeText={setComentarioTexto}
         />
-        <TouchableOpacity style={styles.commentButton} onPress={handleComentar}>
-          <Text style={styles.commentButtonText}>Enviar</Text>
+        <TouchableOpacity
+          style={styles.commentButton}
+          onPress={handleComentar}
+          disabled={sending}
+        >
+          {sending ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.commentButtonText}>Enviar</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -129,59 +161,66 @@ export default PostDetailsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
   },
   error: {
-    color: '#F97316',
+    color: '#F87171',
+    textAlign: 'center',
   },
   commentBox: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 8,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    padding: 10,
     borderRadius: 12,
-    backgroundColor: '#0B1120',
+    borderWidth: 1,
+    borderColor: '#14263b',
+    backgroundColor: '#111827',
   },
   commentAutor: {
-    color: '#F9FAFB',
+    color: '#e28e45',
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   commentText: {
     color: '#E5E7EB',
   },
   commentInputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#111827',
-    backgroundColor: '#020617',
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 16, // deixa acima da barra do sistema
+    backgroundColor: '#182d46ff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#14263b',
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#0B1120',
-    borderRadius: 20,
+    backgroundColor: '#182d46ff',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#374151',
     paddingHorizontal: 12,
     paddingVertical: 8,
     color: '#F9FAFB',
     marginRight: 8,
   },
   commentButton: {
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 12,
+    backgroundColor: '#e28e45',
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
   },
   commentButtonText: {
-    color: '#F9FAFB',
+    color: '#ffffff',
     fontWeight: '600',
   },
 });

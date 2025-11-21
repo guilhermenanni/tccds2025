@@ -1,3 +1,5 @@
+// mobile/src/screens/CreatePostScreen.tsx
+
 import React, { useState } from 'react';
 import {
   View,
@@ -39,7 +41,8 @@ const processImageToBase64 = async (uri: string): Promise<string | null> => {
 
     if (!result.base64) continue;
 
-    const sizeBytes = result.base64.length * 0.75; // aproximação: base64 ~ 4/3 do binário
+    // aproximação: base64 ~ 4/3 do binário
+    const sizeBytes = result.base64.length * 0.75;
 
     if (sizeBytes <= MAX_SIZE_BYTES) {
       return `data:image/jpeg;base64,${result.base64}`;
@@ -66,7 +69,7 @@ const CreatePostScreen: React.FC = () => {
   const [sobre, setSobre] = useState('');
   const [localizacao, setLocalizacao] = useState('');
   const [cidade, setCidade] = useState('');
-  const [data_seletiva, setDataSeletiva] = useState(''); // dd/mm/aaaa
+  const [dataSeletiva, setDataSeletiva] = useState(''); // yyyy-mm-dd
   const [hora, setHora] = useState(''); // hh:mm
   const [categoriaSel, setCategoriaSel] = useState('');
   const [subcategoria, setSubcategoria] = useState('');
@@ -76,7 +79,10 @@ const CreatePostScreen: React.FC = () => {
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permissão', 'Precisamos de acesso à galeria para selecionar uma imagem.');
+      Alert.alert(
+        'Permissão',
+        'Precisamos de acesso à galeria para selecionar uma imagem.'
+      );
       return;
     }
 
@@ -106,25 +112,19 @@ const CreatePostScreen: React.FC = () => {
     }
   };
 
-  const formatarDataParaISO = (dataBr: string) => {
-    const onlyDigits = dataBr.replace(/\D/g, '');
-    if (onlyDigits.length !== 8) return null;
-    const dia = onlyDigits.slice(0, 2);
-    const mes = onlyDigits.slice(2, 4);
-    const ano = onlyDigits.slice(4, 8);
-    return `${ano}-${mes}-${dia}`;
-  };
-
-  const validarPostagem = () => {
-    if (!texto_postagem.trim()) return 'Digite o texto da postagem.';
+  const validarPostagem = (): string | null => {
+    if (!texto_postagem.trim()) {
+      return 'Escreva algo para postar.';
+    }
     return null;
   };
 
-  const validarSeletiva = () => {
-    if (!titulo.trim()) return 'Informe o título da seletiva.';
+  const validarSeletiva = (): string | null => {
+    if (!titulo.trim()) return 'Informe um título para a seletiva.';
+    if (!sobre.trim()) return 'Descreva a seletiva em "sobre".';
     if (!cidade.trim()) return 'Informe a cidade.';
-    if (!data_seletiva.trim()) return 'Informe a data da seletiva.';
-    if (!hora.trim()) return 'Informe o horário da seletiva.';
+    if (!dataSeletiva.trim()) return 'Informe a data da seletiva.';
+    if (!hora.trim()) return 'Informe o horário.';
     return null;
   };
 
@@ -165,7 +165,10 @@ const CreatePostScreen: React.FC = () => {
       setImagemBase64(null);
     } catch (e: any) {
       console.log('Erro ao criar postagem:', e?.response?.data || e.message);
-      Alert.alert('Erro', 'Não foi possível criar a postagem.');
+      Alert.alert(
+        'Erro',
+        e?.response?.data?.message || 'Não foi possível criar a postagem.'
+      );
     } finally {
       setLoading(false);
     }
@@ -178,13 +181,7 @@ const CreatePostScreen: React.FC = () => {
       return;
     }
     if (!token) {
-      Alert.alert('Erro', 'Você precisa estar logado como time.');
-      return;
-    }
-
-    const dataISO = formatarDataParaISO(data_seletiva);
-    if (!dataISO) {
-      Alert.alert('Atenção', 'Data inválida. Use dd/mm/aaaa.');
+      Alert.alert('Erro', 'Você precisa estar logado para criar seletivas.');
       return;
     }
 
@@ -195,13 +192,14 @@ const CreatePostScreen: React.FC = () => {
         '/seletivas',
         {
           titulo: titulo.trim(),
-          sobre: sobre.trim() || null,
-          localizacao: localizacao.trim() || null,
+          sobre: sobre.trim(),
+          localizacao: localizacao || null,
           cidade: cidade.trim(),
-          data_seletiva: dataISO,
+          data: dataSeletiva.trim(),
           hora: hora.trim(),
-          categoria: categoriaSel.trim() || null,
-          subcategoria: subcategoria.trim() || null,
+          categoria: categoriaSel || null,
+          subcategoria: subcategoria || null,
+          img_time: imagemBase64 || null,
         },
         {
           headers: {
@@ -223,7 +221,10 @@ const CreatePostScreen: React.FC = () => {
       setImagemBase64(null);
     } catch (e: any) {
       console.log('Erro ao criar seletiva:', e?.response?.data || e.message);
-      Alert.alert('Erro', 'Não foi possível criar a seletiva.');
+      Alert.alert(
+        'Erro',
+        e?.response?.data?.message || 'Não foi possível criar a seletiva.'
+      );
     } finally {
       setLoading(false);
     }
@@ -237,41 +238,38 @@ const CreatePostScreen: React.FC = () => {
     }
   };
 
+  const tituloTela = ehUsuario ? 'Criar postagem' : 'Criar seletiva';
+  const textoBotao = ehUsuario ? 'Publicar' : 'Criar seletiva';
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.box}>
-          <Text style={styles.title}>
-            {ehUsuario ? 'Criar postagem' : 'Criar seletiva'}
-          </Text>
+          <Text style={styles.title}>{tituloTela}</Text>
 
+          {/* Campos diferentes pra usuário x time */}
           {ehUsuario ? (
             <>
               <View style={styles.field}>
                 <Text style={styles.label}>Texto da postagem</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Conte algo, descreva a oportunidade..."
-                  placeholderTextColor="#6B7280"
-                  multiline
                   value={texto_postagem}
                   onChangeText={setTexto}
-                  maxLength={500}
+                  multiline
+                  placeholder="Compartilhe algo com a comunidade..."
+                  placeholderTextColor="#9CA3AF"
                 />
-                <Text style={styles.charCounter}>
-                  {texto_postagem.length}/500
-                </Text>
               </View>
 
               <View style={styles.field}>
                 <Text style={styles.label}>Categoria (opcional)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Geral, oportunidade, aviso..."
-                  placeholderTextColor="#6B7280"
                   value={categoriaPost}
                   onChangeText={setCategoriaPost}
-                  maxLength={40}
+                  placeholder="Ex: Notícias, Treino, Motivação..."
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
@@ -279,11 +277,10 @@ const CreatePostScreen: React.FC = () => {
                 <Text style={styles.label}>Tag (opcional)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="#atacante, #teste, etc."
-                  placeholderTextColor="#6B7280"
                   value={tag}
                   onChangeText={setTag}
-                  maxLength={30}
+                  placeholder="Ex: sub20, peneira, atacante..."
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
             </>
@@ -293,37 +290,33 @@ const CreatePostScreen: React.FC = () => {
                 <Text style={styles.label}>Título da seletiva</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: Peneira sub-20"
-                  placeholderTextColor="#6B7280"
                   value={titulo}
                   onChangeText={setTitulo}
-                  maxLength={80}
+                  placeholder="Ex: Peneira sub-17 2025"
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Descrição</Text>
+                <Text style={styles.label}>Sobre</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Explique como será a seletiva..."
-                  placeholderTextColor="#6B7280"
-                  multiline
                   value={sobre}
                   onChangeText={setSobre}
-                  maxLength={600}
+                  multiline
+                  placeholder="Descreva como será a seletiva, requisitos, etc."
+                  placeholderTextColor="#9CA3AF"
                 />
-                <Text style={styles.charCounter}>{sobre.length}/600</Text>
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Localização</Text>
+                <Text style={styles.label}>Local</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Campo, endereço, etc."
-                  placeholderTextColor="#6B7280"
                   value={localizacao}
                   onChangeText={setLocalizacao}
-                  maxLength={120}
+                  placeholder="Ex: Estádio Municipal de São José"
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
@@ -331,61 +324,32 @@ const CreatePostScreen: React.FC = () => {
                 <Text style={styles.label}>Cidade</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: São José dos Campos"
-                  placeholderTextColor="#6B7280"
                   value={cidade}
                   onChangeText={setCidade}
-                  maxLength={60}
+                  placeholder="Cidade"
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
               <View style={styles.row}>
-                <View style={[styles.field, { flex: 1, marginRight: 8 }]}>
+                <View style={[styles.field, { flex: 1, marginRight: 4 }]}>
                   <Text style={styles.label}>Data</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="dd/mm/aaaa"
-                    placeholderTextColor="#6B7280"
-                    value={data_seletiva}
-                    onChangeText={(value) => {
-                      let digits = value.replace(/\D/g, '').slice(0, 8);
-                      let formatted = '';
-                      if (digits.length <= 2) {
-                        formatted = digits;
-                      } else if (digits.length <= 4) {
-                        formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-                      } else {
-                        formatted = `${digits.slice(0, 2)}/${digits.slice(
-                          2,
-                          4
-                        )}/${digits.slice(4)}`;
-                      }
-                      setDataSeletiva(formatted);
-                    }}
-                    keyboardType="numeric"
-                    maxLength={10}
+                    value={dataSeletiva}
+                    onChangeText={setDataSeletiva}
+                    placeholder="AAAA-MM-DD"
+                    placeholderTextColor="#9CA3AF"
                   />
                 </View>
-
-                <View style={[styles.field, { flex: 1, marginLeft: 8 }]}>
+                <View style={[styles.field, { flex: 1, marginLeft: 4 }]}>
                   <Text style={styles.label}>Hora</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="hh:mm"
-                    placeholderTextColor="#6B7280"
                     value={hora}
-                    onChangeText={(value) => {
-                      let digits = value.replace(/\D/g, '').slice(0, 4);
-                      let formatted = '';
-                      if (digits.length <= 2) {
-                        formatted = digits;
-                      } else {
-                        formatted = `${digits.slice(0, 2)}:${digits.slice(2)}`;
-                      }
-                      setHora(formatted);
-                    }}
-                    keyboardType="numeric"
-                    maxLength={5}
+                    onChangeText={setHora}
+                    placeholder="HH:MM"
+                    placeholderTextColor="#9CA3AF"
                   />
                 </View>
               </View>
@@ -394,11 +358,10 @@ const CreatePostScreen: React.FC = () => {
                 <Text style={styles.label}>Categoria (opcional)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: sub-20, profissional..."
-                  placeholderTextColor="#6B7280"
                   value={categoriaSel}
                   onChangeText={setCategoriaSel}
-                  maxLength={40}
+                  placeholder="Ex: Sub-17, Sub-20..."
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
@@ -406,28 +369,27 @@ const CreatePostScreen: React.FC = () => {
                 <Text style={styles.label}>Subcategoria (opcional)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: campo, society, futsal..."
-                  placeholderTextColor="#6B7280"
                   value={subcategoria}
                   onChangeText={setSubcategoria}
-                  maxLength={40}
+                  placeholder="Ex: Masculino, Feminino, Misto..."
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
             </>
           )}
 
           <View style={styles.field}>
-            <Text style={styles.label}>Imagem (opcional)</Text>
-            <TouchableOpacity
-              style={styles.imageButton}
-              onPress={handlePickImage}
-            >
-              <Text style={styles.imageButtonText}>
-                {imagemLocal ? 'Trocar imagem' : 'Selecionar da galeria'}
+            <Text style={styles.label}>
+              {ehUsuario ? 'Imagem da postagem (opcional)' : 'Escudo / imagem da seletiva (opcional)'}
+            </Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
+              <Text style={styles.imagePickerText}>
+                {imagemLocal ? 'Trocar imagem' : 'Selecionar imagem'}
               </Text>
             </TouchableOpacity>
+
             {imagemLocal && (
-              <Image source={{ uri: imagemLocal }} style={styles.preview} />
+              <Image source={{ uri: imagemLocal }} style={styles.previewImage} />
             )}
           </View>
 
@@ -439,9 +401,7 @@ const CreatePostScreen: React.FC = () => {
             {loading ? (
               <ActivityIndicator color="#F9FAFB" />
             ) : (
-              <Text style={styles.buttonText}>
-                {ehUsuario ? 'Publicar postagem' : 'Criar seletiva'}
-              </Text>
+              <Text style={styles.buttonText}>{textoBotao}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -455,7 +415,7 @@ export default CreatePostScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
   },
   scroll: {
     flexGrow: 1,
@@ -464,9 +424,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 24,
-    backgroundColor: '#0B1120',
+    backgroundColor: '#213e60',
     borderRadius: 24,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#14263b',
   },
   title: {
     color: '#F9FAFB',
@@ -483,48 +445,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   input: {
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#374151',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     color: '#F9FAFB',
     fontSize: 14,
   },
   textArea: {
-    minHeight: 100,
+    minHeight: 90,
     textAlignVertical: 'top',
-  },
-  charCounter: {
-    color: '#6B7280',
-    fontSize: 12,
-    textAlign: 'right',
-    marginTop: 2,
   },
   row: {
     flexDirection: 'row',
   },
-  imageButton: {
-    backgroundColor: '#111827',
-    paddingVertical: 10,
+  imagePicker: {
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#374151',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     alignItems: 'center',
     marginTop: 4,
   },
-  imageButtonText: {
+  imagePickerText: {
     color: '#E5E7EB',
     fontSize: 13,
-    fontWeight: '500',
   },
-  preview: {
-    marginTop: 8,
+  previewImage: {
     width: '100%',
-    height: 180,
+    height: 200,
     borderRadius: 16,
+    marginTop: 8,
   },
   button: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#e28e45',
     paddingVertical: 14,
     borderRadius: 999,
     alignItems: 'center',

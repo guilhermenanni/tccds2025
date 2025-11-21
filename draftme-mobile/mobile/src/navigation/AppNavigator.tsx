@@ -1,3 +1,5 @@
+// mobile/src/navigation/AppNavigator.tsx
+
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -57,20 +59,26 @@ const MainTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
-      tabBarActiveTintColor: '#22C55E',
+      tabBarActiveTintColor: '#e28e45',
       tabBarInactiveTintColor: '#9CA3AF',
       tabBarStyle: {
-        backgroundColor: '#020617',
+        backgroundColor: '#000000',
         borderTopColor: '#111827',
       },
       tabBarIcon: ({ color, size }) => {
         let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
-        if (route.name === 'Feed') iconName = 'home';
-        if (route.name === 'Seletivas') iconName = 'trophy';
-        if (route.name === 'MinhasSeletivas') iconName = 'checkmark-circle';
-        if (route.name === 'Criar') iconName = 'add-circle';
-        if (route.name === 'Perfil') iconName = 'person';
+        if (route.name === 'Feed') {
+          iconName = 'home';
+        } else if (route.name === 'Seletivas') {
+          iconName = 'trophy';
+        } else if (route.name === 'MinhasSeletivas') {
+          iconName = 'list';
+        } else if (route.name === 'Criar') {
+          iconName = 'add-circle';
+        } else if (route.name === 'Perfil') {
+          iconName = 'person';
+        }
 
         return <Ionicons name={iconName} size={size} color={color} />;
       },
@@ -87,8 +95,16 @@ const MainTabs = () => (
       component={MySeletivasScreen}
       options={{ title: 'Minhas' }}
     />
-    <Tab.Screen name="Criar" component={CreatePostScreen} options={{ title: 'Criar' }} />
-    <Tab.Screen name="Perfil" component={ProfileScreen} options={{ title: 'Perfil' }} />
+    <Tab.Screen
+      name="Criar"
+      component={CreatePostScreen}
+      options={{ title: 'Criar' }}
+    />
+    <Tab.Screen
+      name="Perfil"
+      component={ProfileScreen}
+      options={{ title: 'Perfil' }}
+    />
   </Tab.Navigator>
 );
 
@@ -100,18 +116,22 @@ export const AppNavigator: React.FC = () => {
       <View
         style={{
           flex: 1,
-          backgroundColor: '#020617',
+          backgroundColor: '#182d46ff',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <ActivityIndicator size="large" color="#22C55E" />
+        <ActivityIndicator size="large" color="#e28e45" />
       </View>
     );
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       {!token ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />
       ) : (

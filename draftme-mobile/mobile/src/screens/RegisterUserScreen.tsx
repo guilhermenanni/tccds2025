@@ -253,7 +253,7 @@ export default RegisterUserScreen;
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
   },
   container: {
     flexGrow: 1,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   button: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#e28e45',
     paddingVertical: 14,
     borderRadius: 999,
     alignItems: 'center',

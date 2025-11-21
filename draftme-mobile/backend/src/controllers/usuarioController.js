@@ -50,7 +50,6 @@ export const obterPerfilUsuario = async (req, res) => {
 /**
  * PUT /usuarios/usuario/:id
  * Atualiza os dados do usuário (nome, telefone, imagem, sobre)
- * Requer authMiddleware antes da rota para garantir que está logado.
  */
 export const atualizarPerfilUsuario = async (req, res) => {
   try {
@@ -152,6 +151,178 @@ export const listarPostagensUsuario = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao listar postagens do usuário',
+    });
+  }
+};
+
+/* ===========================================================
+ *  PERFIL / POSTAGENS DE TIME (NOVO)
+ * ===========================================================
+ */
+
+/**
+ * GET /usuarios/time/:id
+ * Retorna os dados do time (perfil)
+ */
+export const obterPerfilTime = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+      `
+        SELECT
+          id_time,
+          nm_time,
+          email_time,
+          tel_time,
+          img_time,
+          sobre_time,
+          localizacao_time
+        FROM tb_time
+        WHERE id_time = ?
+      `,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Time não encontrado',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: rows[0],
+    });
+  } catch (err) {
+    console.error('Erro interno ao obter perfil do time:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao obter perfil do time',
+    });
+  }
+};
+
+/**
+ * PUT /usuarios/time/:id
+ * Atualiza os dados do time (nome, telefone, imagem, sobre, localizacao)
+ * Requer token de TIME, e somente o próprio time pode editar.
+ */
+export const atualizarPerfilTime = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (!user || user.type !== 'time' || user.id !== Number(id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Você não tem permissão para editar este time',
+      });
+    }
+
+    const {
+      nm_time,
+      tel_time,
+      img_time,
+      sobre_time,
+      sobre, // se vier "sobre" do front, tratamos igual
+      localizacao_time,
+    } = req.body;
+
+    const sobreFinal = typeof sobre_time !== 'undefined' ? sobre_time : sobre ?? null;
+
+    await pool.query(
+      `
+        UPDATE tb_time
+        SET
+          nm_time = COALESCE(?, nm_time),
+          tel_time = COALESCE(?, tel_time),
+          img_time = COALESCE(?, img_time),
+          sobre_time = COALESCE(?, sobre_time),
+          localizacao_time = COALESCE(?, localizacao_time)
+        WHERE id_time = ?
+      `,
+      [
+        nm_time ?? null,
+        tel_time ?? null,
+        img_time ?? null,
+        sobreFinal,
+        localizacao_time ?? null,
+        id,
+      ]
+    );
+
+    const [rows] = await pool.query(
+      `
+        SELECT
+          id_time,
+          nm_time,
+          email_time,
+          tel_time,
+          img_time,
+          sobre_time,
+          localizacao_time
+        FROM tb_time
+        WHERE id_time = ?
+      `,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Time não encontrado após atualização',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Perfil do time atualizado com sucesso',
+      data: rows[0],
+    });
+  } catch (err) {
+    console.error('Erro interno ao atualizar perfil do time:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao atualizar perfil do time',
+    });
+  }
+};
+
+/**
+ * GET /usuarios/time/:id/postagens
+ * Lista as postagens feitas por um time específico
+ */
+export const listarPostagensTime = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+      `
+        SELECT
+          p.id_postagem,
+          p.texto_postagem,
+          p.img_postagem,
+          p.categoria,
+          p.tag,
+          p.data_postagem
+        FROM tb_postagem p
+        WHERE p.id_time = ?
+        ORDER BY p.data_postagem DESC
+      `,
+      [id]
+    );
+
+    return res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (err) {
+    console.error('Erro interno ao listar postagens do time:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao listar postagens do time',
     });
   }
 };

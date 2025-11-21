@@ -1,3 +1,5 @@
+// mobile/src/screens/MySeletivasScreen.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -15,130 +17,134 @@ import { useAuth } from '../context/AuthContext';
 interface Seletiva {
   id_seletiva: number;
   titulo: string;
-  sobre?: string | null;
-  localizacao?: string | null;
+  sobre: string;
   cidade: string;
-  data_seletiva: string;
+  estado: string;
+  data: string;
   hora: string;
-  categoria?: string | null;
-  subcategoria?: string | null;
   nm_time: string;
+  img_time?: string | null;
 }
 
-const MySeletivasScreen: React.FC = () => {
+const MySeletivasScreen = () => {
   const { token, tipoSelecionado } = useAuth();
   const [seletivas, setSeletivas] = useState<Seletiva[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const ehUsuario = tipoSelecionado === 'usuario';
+  const ehTime = tipoSelecionado === 'time';
 
-  const carregarMinhasSeletivas = async () => {
-    if (!token || !ehUsuario) {
-      setSeletivas([]);
+  const carregarSeletivas = async () => {
+    if (!token) {
       setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
-      const res = await api.get('/seletivas/minhas', {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get('/seletivas/minhas', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      setSeletivas(res.data.data || []);
-    } catch (e: any) {
-      console.log(
-        'Erro ao carregar minhas seletivas:',
-        e?.response?.data || e.message
+
+      const lista: Seletiva[] = (response.data.data || []).map((item: any) => ({
+        id_seletiva: item.id_seletiva,
+        titulo: item.titulo,
+        sobre: item.sobre,
+        cidade: item.cidade,
+        estado: item.estado,
+        data: item.data,
+        hora: item.hora,
+        nm_time: item.nm_time,
+        img_time: item.img_time ?? null,
+      }));
+
+      setSeletivas(lista);
+    } catch (error) {
+      console.log('Erro ao carregar seletivas do usuário/time', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível carregar suas seletivas. Tente novamente mais tarde.'
       );
-      Alert.alert('Erro', 'Não foi possível carregar suas seletivas.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    carregarMinhasSeletivas();
-  }, [token, tipoSelecionado]);
+    carregarSeletivas();
+  }, [tipoSelecionado]);
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await carregarMinhasSeletivas();
-    setRefreshing(false);
+    carregarSeletivas();
   };
 
-  const formatarDataBr = (iso: string) => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const ano = d.getFullYear();
-    return `${dia}/${mes}/${ano}`;
-  };
+  const renderItem = ({ item }: { item: Seletiva }) => (
+    <View style={styles.card}>
+      <Text style={styles.titulo}>{item.titulo}</Text>
+      <Text style={styles.subtitulo}>
+        {item.cidade} - {item.estado}
+      </Text>
+      <Text style={styles.info}>
+        {item.data} às {item.hora}
+      </Text>
+      <Text style={styles.time}>{item.nm_time}</Text>
+      <Text style={styles.sobre} numberOfLines={3}>
+        {item.sobre}
+      </Text>
+    </View>
+  );
 
-  const renderItem = ({ item }: { item: Seletiva }) => {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.titulo}>{item.titulo}</Text>
-        <Text style={styles.time}>{item.nm_time}</Text>
-        <Text style={styles.meta}>
-          {item.cidade} • {formatarDataBr(item.data_seletiva)} • {item.hora}
-        </Text>
-        {item.categoria && (
-          <Text style={styles.categoria}>{item.categoria}</Text>
-        )}
-        {item.sobre && (
-          <Text style={styles.sobre} numberOfLines={4}>
-            {item.sobre}
-          </Text>
-        )}
-      </View>
-    );
-  };
+  const tituloTela = ehTime ? 'Seletivas do time' : 'Minhas seletivas';
+  const textoVazio = ehTime
+    ? 'Seu time ainda não criou nenhuma seletiva.'
+    : 'Você ainda não está inscrito em nenhuma seletiva.';
 
-  if (!ehUsuario) {
+  if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.headerTitle}>Minhas seletivas</Text>
+        <View style={styles.center}>
+          <ActivityIndicator color="#e28e45" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!token) {
+    return (
+      <SafeAreaView style={styles.container}>
         <View style={styles.messageContainer}>
           <Text style={styles.messageText}>
-            Faça login como jogador para ver suas seletivas.
+            Faça login para ver {ehTime ? 'as seletivas do seu time.' : 'suas seletivas.'}
           </Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#22C55E" />
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.headerTitle}>Minhas seletivas</Text>
-
+      <Text style={styles.title}>{tituloTela}</Text>
       <FlatList
         data={seletivas}
-        keyExtractor={(item) => item.id_seletiva.toString()}
+        keyExtractor={(item) => String(item.id_seletiva)}
         renderItem={renderItem}
-        contentContainerStyle={
-          seletivas.length === 0 ? styles.emptyContainer : { paddingBottom: 24 }
-        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#22C55E"
+            tintColor="#e28e45"
           />
         }
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            Você ainda não está inscrito em nenhuma seletiva.
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>{textoVazio}</Text>
+          </View>
+        }
+        contentContainerStyle={
+          seletivas.length === 0 ? { flexGrow: 1 } : undefined
         }
       />
     </SafeAreaView>
@@ -150,53 +156,56 @@ export default MySeletivasScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
-  },
-  headerTitle: {
-    color: '#F9FAFB',
-    fontSize: 20,
-    fontWeight: '700',
+    backgroundColor: '#182d46ff',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 12,
   },
   center: {
+    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+  },
+  title: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
   },
   card: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: '#0B1120',
+    backgroundColor: '#213e60',
     borderRadius: 16,
-    padding: 14,
+    borderWidth: 1,
+    borderColor: '#14263b',
+    padding: 12,
+    marginBottom: 10,
   },
   titulo: {
-    color: '#F9FAFB',
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  time: {
+  subtitulo: {
     color: '#E5E7EB',
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 13,
+    marginBottom: 2,
   },
-  meta: {
+  info: {
     color: '#9CA3AF',
     fontSize: 12,
-    marginTop: 4,
+    marginBottom: 2,
   },
-  categoria: {
-    color: '#38BDF8',
-    fontSize: 12,
-    marginTop: 2,
+  time: {
+    color: '#e28e45',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
   },
   sobre: {
-    color: '#D1D5DB',
+    color: '#E5E7EB',
     fontSize: 13,
-    marginTop: 8,
   },
   emptyContainer: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },

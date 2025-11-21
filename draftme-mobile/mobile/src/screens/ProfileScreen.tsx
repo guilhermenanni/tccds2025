@@ -1,3 +1,5 @@
+// mobile/src/screens/ProfileScreen.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -23,7 +25,10 @@ interface Postagem {
   img_postagem?: string | null;
   categoria?: string | null;
   tag?: string | null;
-  data_postagem: string;
+  autor: string;
+  avatar?: string | null;
+  curtidas_count: number;
+  comentarios_count: number;
 }
 
 interface PerfilUsuario {
@@ -44,7 +49,7 @@ interface PerfilTime {
   sobre?: string | null;
 }
 
-const ProfileScreen: React.FC = () => {
+const ProfileScreen: React.FC<any> = ({ navigation }) => {
   const { user, tipoSelecionado, token, logout } = useAuth();
   const [perfil, setPerfil] = useState<PerfilUsuario | PerfilTime | null>(null);
   const [postagens, setPostagens] = useState<Postagem[]>([]);
@@ -55,12 +60,15 @@ const ProfileScreen: React.FC = () => {
   const [telEdit, setTelEdit] = useState('');
   const [sobreEdit, setSobreEdit] = useState('');
   const [imgLocal, setImgLocal] = useState<string | null>(null);
-  const [imgBase64, setImgBase64] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
 
   const ehTime = tipoSelecionado === 'time';
 
   const carregarPerfilEPosts = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -78,7 +86,6 @@ const ProfileScreen: React.FC = () => {
         setSobreEdit(p.sobre || '');
         setPostagens(postsRes.data.data || []);
         setImgLocal(null);
-        setImgBase64(null);
       } else if (!ehTime && 'id_usuario' in user) {
         const [perfilRes, postsRes] = await Promise.all([
           api.get(`/usuarios/usuario/${user.id_usuario}`),
@@ -92,11 +99,13 @@ const ProfileScreen: React.FC = () => {
         setSobreEdit(p.sobre || '');
         setPostagens(postsRes.data.data || []);
         setImgLocal(null);
-        setImgBase64(null);
       }
-    } catch (err: any) {
-      console.log('Erro ao carregar perfil:', err?.response?.data || err.message);
-      Alert.alert('Erro', 'Não foi possível carregar o perfil.');
+    } catch (error) {
+      console.log('Erro ao carregar perfil/postagens:', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível carregar as informações do perfil. Tente novamente.'
+      );
     } finally {
       setLoading(false);
     }
@@ -104,78 +113,82 @@ const ProfileScreen: React.FC = () => {
 
   useEffect(() => {
     carregarPerfilEPosts();
-  }, [tipoSelecionado]);
+  }, [user, tipoSelecionado]);
 
-  const handlePickImage = async () => {
+  const escolherImagem = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (status !== 'granted') {
-      Alert.alert('Permissão', 'Precisamos de acesso à galeria para mudar a foto.');
+      Alert.alert(
+        'Permissão negada',
+        'Precisamos de acesso à sua galeria para selecionar uma foto.'
+      );
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
       base64: true,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
-      setImgLocal(asset.uri);
       if (asset.base64) {
-        setImgBase64(`data:image/jpeg;base64,${asset.base64}`);
-      } else {
-        setImgBase64(null);
+        setImgLocal(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
+      } else if (asset.uri) {
+        setImgLocal(asset.uri);
       }
     }
   };
 
-  const handleSalvarPerfil = async () => {
-    if (!token || !user || !perfil) return;
+  const handleSalvarEdicao = async () => {
+    if (!user || !token || !perfil) return;
 
     try {
-      setLoading(true);
+      setSalvando(true);
 
-      if (ehTime && 'id_time' in user && 'id_time' in perfil) {
-        await api.put(
-          `/usuarios/time/${user.id_time}`,
-          {
-            nm_time: nomeEdit.trim(),
-            tel_time: telEdit.trim() || null,
-            img_time: imgBase64 ?? (perfil as PerfilTime).img_time ?? null,
-            sobre: sobreEdit.trim() || null,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-      } else if (!ehTime && 'id_usuario' in user && 'id_usuario' in perfil) {
-        await api.put(
-          `/usuarios/usuario/${user.id_usuario}`,
-          {
-            nm_usuario: nomeEdit.trim(),
-            tel_usuario: telEdit.trim() || null,
-            img_usuario: imgBase64 ?? (perfil as PerfilUsuario).img_usuario ?? null,
-            sobre: sobreEdit.trim() || null,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      const payload: any = {};
+
+      if (ehTime) {
+        payload.nm_time = nomeEdit;
+        payload.tel_time = telEdit || null;
+        payload.sobre_time = sobreEdit || null;
+        if (imgLocal) {
+          payload.img_time = imgLocal;
+        }
+      } else {
+        payload.nm_usuario = nomeEdit;
+        payload.tel_usuario = telEdit || null;
+        payload.sobre = sobreEdit || null;
+        if (imgLocal) {
+          payload.img_usuario = imgLocal;
+        }
       }
 
-      Alert.alert('Sucesso', 'Perfil atualizado.');
+      if (ehTime && 'id_time' in user) {
+        await api.put(`/usuarios/time/${user.id_time}`, payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else if (!ehTime && 'id_usuario' in user) {
+        await api.put(`/usuarios/usuario/${user.id_usuario}`, payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
       setEditando(false);
       carregarPerfilEPosts();
     } catch (e: any) {
       console.log('Erro ao atualizar perfil:', e?.response?.data || e.message);
       Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
     } finally {
-      setLoading(false);
+      setSalvando(false);
     }
   };
 
@@ -193,23 +206,20 @@ const ProfileScreen: React.FC = () => {
       ? perfil.email_usuario
       : '';
 
-  const imagemAtual =
-    (ehTime &&
-      perfil &&
-      'img_time' in perfil &&
-      (perfil.img_time as string | null)) ||
-    (!ehTime &&
-      perfil &&
-      'img_usuario' in perfil &&
-      (perfil.img_usuario as string | null)) ||
-    null;
+  const imagemPerfil =
+    imgLocal ||
+    (ehTime && perfil && 'img_time' in perfil
+      ? perfil.img_time || null
+      : !ehTime && perfil && 'img_usuario' in perfil
+      ? perfil.img_usuario || null
+      : null);
 
-  const imagemMostrar = imgLocal || imagemAtual || null;
+  const imagemMostrar = imagemPerfil || null;
 
-  if (loading && !perfil) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#22C55E" />
+        <ActivityIndicator size="large" color="#e28e45" />
       </SafeAreaView>
     );
   }
@@ -252,10 +262,10 @@ const ProfileScreen: React.FC = () => {
       </View>
 
       {editando && (
-        <View style={styles.editBox}>
+        <View style={styles.editContainer}>
           <TouchableOpacity
             style={styles.changePhotoButton}
-            onPress={handlePickImage}
+            onPress={escolherImagem}
           >
             <Text style={styles.changePhotoText}>
               {imgLocal ? 'Trocar foto' : 'Escolher foto de perfil'}
@@ -270,6 +280,8 @@ const ProfileScreen: React.FC = () => {
               style={styles.editInput}
               value={nomeEdit}
               onChangeText={setNomeEdit}
+              placeholder={ehTime ? 'Nome do time' : 'Seu nome'}
+              placeholderTextColor="#6B7280"
               maxLength={80}
             />
           </View>
@@ -295,19 +307,19 @@ const ProfileScreen: React.FC = () => {
               style={[styles.editInput, styles.editTextArea]}
               value={sobreEdit}
               onChangeText={setSobreEdit}
-              multiline
-              maxLength={300}
-              placeholder="Conte um pouco sobre você / seu time"
+              placeholder="Conte um pouco sobre você"
               placeholderTextColor="#6B7280"
+              multiline
+              numberOfLines={3}
             />
           </View>
 
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={handleSalvarPerfil}
-            disabled={loading}
+            onPress={handleSalvarEdicao}
+            disabled={salvando}
           >
-            {loading ? (
+            {salvando ? (
               <ActivityIndicator color="#F9FAFB" />
             ) : (
               <Text style={styles.saveButtonText}>Salvar alterações</Text>
@@ -329,7 +341,25 @@ const ProfileScreen: React.FC = () => {
         data={postagens}
         keyExtractor={(item) => item.id_postagem.toString()}
         renderItem={({ item }) => (
-          <PostCard postagem={item as any} onPress={() => {}} />
+          <PostCard
+            autor={item.autor}
+            avatar={item.avatar}
+            texto_postagem={item.texto_postagem}
+            categoria={item.categoria}
+            tag={item.tag}
+            img_postagem={item.img_postagem}
+            curtidas_count={item.curtidas_count}
+            comentarios_count={item.comentarios_count}
+            onPress={() =>
+              navigation.navigate('PostDetails', { id_postagem: item.id_postagem })
+            }
+            onComment={() =>
+              navigation.navigate('PostDetails', {
+                id_postagem: item.id_postagem,
+                focusComment: true,
+              })
+            }
+          />
         )}
         contentContainerStyle={{ paddingBottom: 24 }}
         ListEmptyComponent={
@@ -349,11 +379,11 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -364,25 +394,23 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center',
+    gap: 12,
   },
   avatar: {
     width: 72,
     height: 72,
-    borderRadius: 999,
-    backgroundColor: '#111827',
+    borderRadius: 36,
   },
   avatarPlaceholder: {
     width: 72,
     height: 72,
-    borderRadius: 999,
+    borderRadius: 36,
     backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    color: '#F9FAFB',
+    color: '#E5E7EB',
     fontSize: 28,
     fontWeight: '700',
   },
@@ -390,11 +418,11 @@ const styles = StyleSheet.create({
     color: '#F9FAFB',
     fontSize: 20,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   email: {
     color: '#9CA3AF',
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: 4,
   },
   about: {
@@ -430,26 +458,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  editBox: {
+  editContainer: {
     marginTop: 16,
-    backgroundColor: '#020617',
-    borderRadius: 16,
     padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
+    backgroundColor: '#020617',
   },
   changePhotoButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#111827',
-    borderRadius: 999,
-    paddingHorizontal: 12,
     paddingVertical: 8,
-    marginBottom: 10,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#374151',
+    alignSelf: 'flex-start',
+    marginBottom: 12,
   },
   changePhotoText: {
     color: '#E5E7EB',
     fontSize: 13,
   },
   editField: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   editLabel: {
     color: '#E5E7EB',
@@ -457,7 +488,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   editInput: {
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#374151',
@@ -471,7 +502,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   saveButton: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#e28e45',
     paddingVertical: 10,
     borderRadius: 999,
     alignItems: 'center',

@@ -206,7 +206,7 @@ export default RegisterTeamScreen;
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
   },
   container: {
     flexGrow: 1,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   box: {
-    backgroundColor: '#0B1120',
+    backgroundColor: '#182d46ff',
     borderRadius: 24,
     padding: 24,
   },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   input: {
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#e28e45',
     paddingVertical: 14,
     borderRadius: 999,
     alignItems: 'center',

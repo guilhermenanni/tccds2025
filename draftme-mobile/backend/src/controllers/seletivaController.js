@@ -15,7 +15,6 @@ export const listarSeletivas = async (req, res, next) => {
         s.titulo,
         s.sobre,
         s.localizacao,
-        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -45,7 +44,6 @@ export const listarSeletivasPorCategoria = async (req, res, next) => {
         s.titulo,
         s.sobre,
         s.localizacao,
-        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -66,10 +64,12 @@ export const listarSeletivasPorCategoria = async (req, res, next) => {
   }
 };
 
-// Filtra seletivas por cidade
+// Filtra seletivas por "cidade" (aqui usamos localizacao como referência)
 export const listarSeletivasPorCidade = async (req, res, next) => {
   try {
     const { cidade } = req.params;
+
+    const like = `%${cidade}%`;
 
     const [rows] = await pool.query(
       `SELECT 
@@ -77,7 +77,6 @@ export const listarSeletivasPorCidade = async (req, res, next) => {
         s.titulo,
         s.sobre,
         s.localizacao,
-        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -87,9 +86,9 @@ export const listarSeletivasPorCidade = async (req, res, next) => {
         t.img_time
       FROM tb_seletiva s
       INNER JOIN tb_time t ON s.id_time = t.id_time
-      WHERE s.cidade = ?
+      WHERE s.localizacao LIKE ?
       ORDER BY s.data_postagem DESC`,
-      [cidade]
+      [like]
     );
 
     res.json({ success: true, data: rows });
@@ -98,108 +97,76 @@ export const listarSeletivasPorCidade = async (req, res, next) => {
   }
 };
 
-// Criação de seletiva
+// Criação de seletiva (time logado)
 export const criarSeletiva = async (req, res, next) => {
   try {
-    const { type, id } = req.user;
+    const user = req.user;
+
+    if (!user || user.type !== 'time') {
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas times podem criar seletivas',
+      });
+    }
+
+    const id_time = user.id;
+
     const {
       titulo,
+      sobre,
       localizacao,
-      cidade,
       data_seletiva,
       hora,
       categoria,
       subcategoria,
-      sobre,
     } = req.body;
 
-    if (type !== 'time') {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Apenas times podem criar seletivas' });
-    }
-
-    if (!titulo || !localizacao || !cidade || !data_seletiva || !hora) {
+    if (!titulo || !sobre || !localizacao || !data_seletiva || !hora) {
       return res.status(400).json({
         success: false,
-        message: 'Título, local, cidade, data e hora são obrigatórios',
+        message: 'Preencha título, sobre, localizacao, data e hora.',
       });
     }
 
-    const [result] = await pool.query(
+    await pool.query(
       `INSERT INTO tb_seletiva 
-        (id_time, titulo, localizacao, cidade, data_seletiva, hora, categoria, subcategoria, sobre)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id_time, titulo, localizacao, data_seletiva, hora, categoria, subcategoria, sobre)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        id,
+        id_time,
         titulo,
         localizacao,
-        cidade,
         data_seletiva,
         hora,
         categoria || null,
         subcategoria || null,
-        sobre || '',
+        sobre,
       ]
     );
 
-    const [rows] = await pool.query(
-      `SELECT 
-        s.id_seletiva,
-        s.titulo,
-        s.sobre,
-        s.localizacao,
-        s.cidade,
-        s.data_seletiva,
-        s.hora,
-        s.categoria,
-        s.subcategoria,
-        t.id_time,
-        t.nm_time,
-        t.img_time
-      FROM tb_seletiva s
-      INNER JOIN tb_time t ON s.id_time = t.id_time
-      WHERE s.id_seletiva = ?`,
-      [result.insertId]
-    );
-
-    res.status(201).json({
+    res.json({
       success: true,
       message: 'Seletiva criada com sucesso',
-      data: rows[0],
     });
   } catch (err) {
     next(err);
   }
 };
 
-// Inscrever usuário
+// Inscrição em seletiva (usuário logado)
 export const inscreverSeletiva = async (req, res, next) => {
   try {
-    const { id } = req.params;
     const user = req.user;
+    const { id } = req.params;
 
-    if (user.type !== 'usuario') {
+    if (!user || user.type !== 'usuario') {
       return res.status(403).json({
         success: false,
-        message: 'Apenas usuários podem se inscrever',
+        message: 'Apenas usuários podem se inscrever em seletivas',
       });
     }
 
     const id_usuario = user.id;
-
-    const [existing] = await pool.query(
-      `SELECT id_inscricao FROM tb_inscricao_seletiva 
-       WHERE id_seletiva = ? AND id_usuario = ?`,
-      [id, id_usuario]
-    );
-
-    if (existing.length > 0) {
-      return res.json({
-        success: true,
-        message: 'Usuário já inscrito',
-      });
-    }
 
     await pool.query(
       `INSERT INTO tb_inscricao_seletiva (id_seletiva, id_usuario)
@@ -207,22 +174,31 @@ export const inscreverSeletiva = async (req, res, next) => {
       [id, id_usuario]
     );
 
-    res.json({ success: true, message: 'Inscrição realizada' });
+    res.json({
+      success: true,
+      message: 'Inscrição realizada com sucesso',
+    });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({
+        success: false,
+        message: 'Você já está inscrito nesta seletiva',
+      });
+    }
     next(err);
   }
 };
 
-// CANCELAR INSCRIÇÃO — AQUI ESTÁ A FUNÇÃO NOVA
+// CANCELAR inscrição em seletiva (usuário logado)
 export const cancelarInscricao = async (req, res, next) => {
   try {
-    const { id } = req.params; // ID da seletiva
     const user = req.user;
+    const { id } = req.params;
 
-    if (user.type !== 'usuario') {
+    if (!user || user.type !== 'usuario') {
       return res.status(403).json({
         success: false,
-        message: 'Apenas usuários podem cancelar inscrição',
+        message: 'Apenas usuários podem cancelar inscrições',
       });
     }
 
@@ -263,7 +239,6 @@ export const listarInscricoesUsuario = async (req, res, next) => {
         s.id_seletiva,
         s.titulo,
         s.localizacao,
-        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -285,45 +260,83 @@ export const listarInscricoesUsuario = async (req, res, next) => {
   }
 };
 
-// Minhas seletivas (usuário logado)
+/**
+ * Lista "minhas seletivas"
+ *  - se for USUÁRIO: seletivas em que ele está inscrito
+ *  - se for TIME: seletivas criadas por ele
+ */
 export const listarMinhasSeletivas = async (req, res, next) => {
   try {
     const user = req.user;
 
-    if (!user || user.type !== 'usuario') {
-      return res.status(403).json({
+    if (!user) {
+      return res.status(401).json({
         success: false,
-        message: 'Apenas usuários podem ver suas seletivas',
+        message: 'Não autenticado',
       });
     }
 
-    const id_usuario = user.id;
+    // Usuário comum -> seletivas em que ele está inscrito
+    if (user.type === 'usuario') {
+      const id_usuario = user.id;
 
-    const [rows] = await pool.query(
-      `SELECT 
-        i.id_inscricao,
-        i.data_inscricao,
-        i.status,
-        s.id_seletiva,
-        s.titulo,
-        s.localizacao,
-        s.cidade,
-        s.data_seletiva,
-        s.hora,
-        s.categoria,
-        s.subcategoria,
-        t.id_time,
-        t.nm_time,
-        t.img_time
-      FROM tb_inscricao_seletiva i
-      INNER JOIN tb_seletiva s ON i.id_seletiva = s.id_seletiva
-      INNER JOIN tb_time t ON s.id_time = t.id_time
-      WHERE i.id_usuario = ?
-      ORDER BY i.data_inscricao DESC`,
-      [id_usuario]
-    );
+      const [rows] = await pool.query(
+        `SELECT 
+          i.id_inscricao,
+          i.data_inscricao,
+          i.status,
+          s.id_seletiva,
+          s.titulo,
+          s.localizacao,
+          s.data_seletiva,
+          s.hora,
+          s.categoria,
+          s.subcategoria,
+          t.id_time,
+          t.nm_time,
+          t.img_time
+        FROM tb_inscricao_seletiva i
+        INNER JOIN tb_seletiva s ON i.id_seletiva = s.id_seletiva
+        INNER JOIN tb_time t ON s.id_time = t.id_time
+        WHERE i.id_usuario = ?
+        ORDER BY i.data_inscricao DESC`,
+        [id_usuario]
+      );
 
-    res.json({ success: true, data: rows });
+      return res.json({ success: true, data: rows });
+    }
+
+    // Time -> seletivas criadas pelo time
+    if (user.type === 'time') {
+      const id_time = user.id;
+
+      const [rows] = await pool.query(
+        `SELECT 
+          s.id_seletiva,
+          s.titulo,
+          s.sobre,
+          s.localizacao,
+          s.data_seletiva,
+          s.hora,
+          s.categoria,
+          s.subcategoria,
+          t.id_time,
+          t.nm_time,
+          t.img_time
+        FROM tb_seletiva s
+        INNER JOIN tb_time t ON s.id_time = t.id_time
+        WHERE s.id_time = ?
+        ORDER BY s.data_postagem DESC`,
+        [id_time]
+      );
+
+      return res.json({ success: true, data: rows });
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'Tipo de usuário inválido para esta operação',
+    });
   } catch (err) {
     next(err);
   }

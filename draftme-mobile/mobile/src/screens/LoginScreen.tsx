@@ -147,13 +147,15 @@ export default LoginScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#182d46ff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   box: {
     width: '90%',
-    backgroundColor: '#020617',
+    backgroundColor: '#0e2036ff',
+    padding: 24,
+    borderRadius: 24,
   },
   logo: {
     fontSize: 32,
@@ -187,7 +189,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#e28e45',
     paddingVertical: 14,
     borderRadius: 999,
     alignItems: 'center',
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   footerLink: {
-    color: '#22C55E',
+    color: '#e28e45',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -234,7 +236,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#b97539ff',
   },
   toggleText: {
     color: '#9CA3AF',
