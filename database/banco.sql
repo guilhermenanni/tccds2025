@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS db_draftme;
 USE db_draftme;
 
-#drop database db_draftme;
+#	drop database db_draftme;
 
 -- criaÃ§Ã£o da tabela de times
 CREATE TABLE tb_time (
@@ -114,13 +114,17 @@ CREATE TABLE tb_curtida (
     id_usuario INT NULL,
     id_time INT NULL,
     data_curtida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
     FOREIGN KEY (id_postagem) REFERENCES tb_postagem(id_postagem) ON DELETE CASCADE,
     FOREIGN KEY (id_usuario) REFERENCES tb_usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_time) REFERENCES tb_time(id_time) ON DELETE CASCADE,
-    -- Garante que apenas um dos dois (usuÃ¡rio ou time) estÃ¡ preenchido
+
+    -- Garante que apenas um dos dois (usuário ou time) está preenchido
+    CONSTRAINT chk_curtida_entidade CHECK (
         (id_usuario IS NOT NULL AND id_time IS NULL) OR
         (id_usuario IS NULL AND id_time IS NOT NULL)
     ),
+
     -- Impede curtidas duplicadas da mesma entidade na mesma postagem
     UNIQUE KEY curtida_unica (id_postagem, id_usuario, id_time)
 );
