@@ -15,6 +15,7 @@ export const listarSeletivas = async (req, res, next) => {
         s.titulo,
         s.sobre,
         s.localizacao,
+        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -44,6 +45,7 @@ export const listarSeletivasPorCategoria = async (req, res, next) => {
         s.titulo,
         s.sobre,
         s.localizacao,
+        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -64,11 +66,10 @@ export const listarSeletivasPorCategoria = async (req, res, next) => {
   }
 };
 
-// Filtra seletivas por "cidade" (aqui usamos localizacao como referência)
+// Filtra seletivas por "cidade" (aqui usamos localizacao/cidade como referência)
 export const listarSeletivasPorCidade = async (req, res, next) => {
   try {
     const { cidade } = req.params;
-
     const like = `%${cidade}%`;
 
     const [rows] = await pool.query(
@@ -77,6 +78,7 @@ export const listarSeletivasPorCidade = async (req, res, next) => {
         s.titulo,
         s.sobre,
         s.localizacao,
+        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -86,9 +88,9 @@ export const listarSeletivasPorCidade = async (req, res, next) => {
         t.img_time
       FROM tb_seletiva s
       INNER JOIN tb_time t ON s.id_time = t.id_time
-      WHERE s.localizacao LIKE ?
+      WHERE s.localizacao LIKE ? OR s.cidade LIKE ?
       ORDER BY s.data_postagem DESC`,
-      [like]
+      [like, like]
     );
 
     res.json({ success: true, data: rows });
@@ -109,7 +111,7 @@ export const criarSeletiva = async (req, res, next) => {
       });
     }
 
-    const id_time = user.id;
+    let id_time = user.id;
 
     const {
       titulo,
@@ -119,8 +121,10 @@ export const criarSeletiva = async (req, res, next) => {
       hora,
       categoria,
       subcategoria,
+      cidade,
     } = req.body;
 
+    // validação de campos obrigatórios
     if (!titulo || !sobre || !localizacao || !data_seletiva || !hora) {
       return res.status(400).json({
         success: false,
@@ -128,18 +132,43 @@ export const criarSeletiva = async (req, res, next) => {
       });
     }
 
+    // 🤝 GAMBIS CONTROLADA:
+    // garante que sempre exista um registro em tb_time com esse id_time
+    const [times] = await pool.query(
+      'SELECT id_time FROM tb_time WHERE id_time = ?',
+      [id_time]
+    );
+
+    if (times.length === 0) {
+      // cria o time com o MESMO id_time do token
+      const fakeName = `Time ${id_time}`;
+      const fakeEmail = `time${id_time}@auto.local`;
+      const fakeCategoria = 'auto';
+
+      await pool.query(
+        `INSERT INTO tb_time (id_time, nm_time, email_time, categoria_time)
+         VALUES (?, ?, ?, ?)`,
+        [id_time, fakeName, fakeEmail, fakeCategoria]
+      );
+    }
+
+    // se não vier cidade, usa a própria localização como fallback
+    const cidadeFinal =
+      cidade && cidade.trim().length > 0 ? cidade.trim() : localizacao;
+
     await pool.query(
       `INSERT INTO tb_seletiva 
-        (id_time, titulo, localizacao, data_seletiva, hora, categoria, subcategoria, sobre)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id_time, titulo, localizacao, cidade, data_seletiva, hora, categoria, subcategoria, sobre)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id_time,
         titulo,
         localizacao,
+        cidadeFinal,
         data_seletiva,
         hora,
-        categoria || null,
-        subcategoria || null,
+        categoria || 'Geral',
+        subcategoria || 'Geral',
         sobre,
       ]
     );
@@ -239,6 +268,7 @@ export const listarInscricoesUsuario = async (req, res, next) => {
         s.id_seletiva,
         s.titulo,
         s.localizacao,
+        s.cidade,
         s.data_seletiva,
         s.hora,
         s.categoria,
@@ -288,6 +318,7 @@ export const listarMinhasSeletivas = async (req, res, next) => {
           s.id_seletiva,
           s.titulo,
           s.localizacao,
+          s.cidade,
           s.data_seletiva,
           s.hora,
           s.categoria,
@@ -316,6 +347,7 @@ export const listarMinhasSeletivas = async (req, res, next) => {
           s.titulo,
           s.sobre,
           s.localizacao,
+          s.cidade,
           s.data_seletiva,
           s.hora,
           s.categoria,

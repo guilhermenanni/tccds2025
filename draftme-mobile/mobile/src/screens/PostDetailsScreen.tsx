@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../context/AuthContext';
@@ -25,7 +26,7 @@ interface Comentario {
   tipo_autor: 'usuario' | 'time';
 }
 
-const PostDetailsScreen = ({ route }: any) => {
+const PostDetailsScreen = ({ route, navigation }: any) => {
   const { id_postagem } = route.params;
   const [postagem, setPostagem] = useState<any>(null);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
@@ -33,6 +34,7 @@ const PostDetailsScreen = ({ route }: any) => {
   const [comentarioTexto, setComentarioTexto] = useState('');
   const [sending, setSending] = useState(false);
   const { user } = useAuth();
+  const insets = useSafeAreaInsets(); // respeita a barra inferior
 
   const loadData = async () => {
     try {
@@ -76,9 +78,23 @@ const PostDetailsScreen = ({ route }: any) => {
 
       setComentarioTexto('');
       await loadData();
-    } catch (e) {
-      console.log('Erro ao comentar', e);
-      Alert.alert('Erro', 'Não foi possível enviar o comentário.');
+    } catch (e: any) {
+      console.log('Erro ao comentar', e?.response || e);
+
+      if (e?.response?.status === 401) {
+        Alert.alert(
+          'Sessão expirada',
+          'Faça login novamente para comentar.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Erro', 'Não foi possível enviar o comentário.');
+      }
     } finally {
       setSending(false);
     }
@@ -129,10 +145,17 @@ const PostDetailsScreen = ({ route }: any) => {
         data={comentarios}
         keyExtractor={(item) => String(item.id_comentario)}
         renderItem={renderComentario}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{
+          paddingBottom: 160 + insets.bottom, // espaço pra não ficar atrás do input
+        }}
       />
 
-      <View style={styles.commentInputBox}>
+      <View
+        style={[
+          styles.commentInputBox,
+          { paddingBottom: 8 + insets.bottom }, // sobe acima da barra de gestos
+        ]}
+      >
         <TextInput
           style={styles.commentInput}
           placeholder="Adicionar comentário..."
@@ -195,7 +218,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 16, // deixa acima da barra do sistema
+    paddingBottom: 16, // base, sobrescrita pelo insets.bottom no componente
     backgroundColor: '#182d46ff',
     flexDirection: 'row',
     alignItems: 'center',

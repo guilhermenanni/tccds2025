@@ -12,11 +12,13 @@ A plataforma possibilita que organizadores publiquem seletivas, enquanto atletas
   -  Visualização de seletivas
   -  Inscrição nas seletivas
   -  Acompanhamento das inscrições
+  -  Postagens no feed
 
    Organizadores:
   -  Criação de seletivas
   -  Edição e exclusão
   -  Visualização dos inscritos
+  -  Postagens no feed
 
  Tecnologias Utilizadas:
 
@@ -37,17 +39,8 @@ A plataforma possibilita que organizadores publiquem seletivas, enquanto atletas
   - PHP
   - MySQL
 
- Arquitetura do Sistema:
-
-Mobile (React Native)
-Site (HTML/CSS/JS)
-        ↕
-     Backend (PHP)
-        ↕
-       MySQL
-
  Integrantes:
-- Guilherme Nanni dos Santos
-- José Renato Kotsugai Gianinni
-- Lucas Alves Correa dos Santos
-- Samuel Almeida Nascimento
+- [Guilherme Nanni dos Santos](https://github.com/guilhermenanni/)
+- [José Renato Kotsugai Gianinni](https://github.com/josekotsugai)
+- [Lucas Alves Correa dos Santos](https://github.com/LucasAlves0718)
+- [Samuel Almeida Nascimento](https://github.com/SamuelNascimento4027)

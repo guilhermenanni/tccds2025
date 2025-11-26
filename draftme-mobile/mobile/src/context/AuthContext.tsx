@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
   ReactNode,
 } from 'react';
 import { api } from '../api/client';
@@ -42,11 +43,9 @@ interface AuthContextType {
     nm_time: string;
     email_time: string;
     senha_time: string;
-    time_cnpj: string;
-    categoria_time: string;
-    esporte_time: string;
+    cnpj_time: string;
+    tel_time: string;
   }) => Promise<void>;
-
   logout: () => void;
   loading: boolean;
 }
@@ -70,6 +69,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<Usuario | Time | null>(null);
   const [tipoSelecionado, setTipoSelecionado] = useState<TipoUsuario>('usuario');
   const [loading, setLoading] = useState(false);
+
+  // 🔑 Sempre que o token mudar, atualiza o header Authorization do axios
+  useEffect(() => {
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete api.defaults.headers.common['Authorization'];
+    }
+  }, [token]);
 
   const login = async ({ email, senha }: { email: string; senha: string }) => {
     setLoading(true);
