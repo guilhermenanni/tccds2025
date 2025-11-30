@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   box: {
-    backgroundColor: '#182d46ff',
+    backgroundColor: '#0B1120',
     borderRadius: 24,
     padding: 24,
   },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   input: {
-    backgroundColor: '#182d46ff',
+    backgroundColor: '#020617',
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 10,

@@ -30,6 +30,17 @@ interface Seletiva {
   img_time?: string | null;
 }
 
+interface Inscrito {
+  id_inscricao: number;
+  id_usuario: number;
+  nm_usuario: string;
+  email_usuario: string;
+  tel_usuario?: string | null;
+  img_usuario?: string | null;
+  data_inscricao?: string | null;
+  status?: string | null;
+}
+
 const MySeletivasScreen: React.FC = () => {
   const { token, tipoSelecionado } = useAuth();
   const ehTime = tipoSelecionado === 'time';
@@ -39,6 +50,12 @@ const MySeletivasScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [inscrevendoId, setInscrevendoId] = useState<number | null>(null);
+
+  const [inscritosPorSeletiva, setInscritosPorSeletiva] = useState<
+    Record<number, Inscrito[]>
+  >({});
+  const [carregandoInscritosId, setCarregandoInscritosId] = useState<number | null>(null);
+  const [seletivaAbertaId, setSeletivaAbertaId] = useState<number | null>(null);
 
   const carregarSeletivas = async () => {
     if (!token) {
@@ -73,7 +90,10 @@ const MySeletivasScreen: React.FC = () => {
 
       setSeletivas(lista);
     } catch (error: any) {
-      console.log('Erro ao carregar seletivas do usuário/time', error?.response?.data || error.message);
+      console.log(
+        'Erro ao carregar seletivas do usuário/time',
+        error?.response?.data || error.message
+      );
       Alert.alert(
         'Erro',
         'Não foi possível carregar suas seletivas. Tente novamente mais tarde.'
@@ -134,6 +154,54 @@ const MySeletivasScreen: React.FC = () => {
     }
   };
 
+  const carregarInscritos = async (id_seletiva: number) => {
+    if (!ehTime) return;
+    if (!token) return;
+
+    // se já está aberto, clicar de novo fecha
+    if (seletivaAbertaId === id_seletiva && !carregandoInscritosId) {
+      setSeletivaAbertaId(null);
+      return;
+    }
+
+    try {
+      setCarregandoInscritosId(id_seletiva);
+
+      const response = await api.get(`/seletivas/${id_seletiva}/inscritos`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const lista: Inscrito[] = (response.data.data || []).map((item: any) => ({
+        id_inscricao: item.id_inscricao,
+        id_usuario: item.id_usuario,
+        nm_usuario: item.nm_usuario,
+        email_usuario: item.email_usuario,
+        data_inscricao: item.data_inscricao ?? null,
+      }));
+
+      setInscritosPorSeletiva((prev) => ({
+        ...prev,
+        [id_seletiva]: lista,
+      }));
+
+      setSeletivaAbertaId(id_seletiva);
+    } catch (e: any) {
+      console.log(
+        'Erro ao carregar inscritos:',
+        e?.response?.data || e.message
+      );
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.erro ||
+        'Não foi possível carregar os inscritos dessa seletiva.';
+      Alert.alert('Erro', msg);
+    } finally {
+      setCarregandoInscritosId(null);
+    }
+  };
+
   const tituloTela = ehTime ? 'Seletivas do time' : 'Minhas seletivas';
   const textoVazio = ehTime
     ? 'Seu time ainda não criou nenhuma seletiva.'
@@ -142,6 +210,9 @@ const MySeletivasScreen: React.FC = () => {
   const renderItem = ({ item }: { item: Seletiva }) => {
     const dataBr =
       formatarDataBr(item.data_seletiva || item.data) || 'Data não informada';
+
+    const inscritos = inscritosPorSeletiva[item.id_seletiva] || [];
+    const aberta = seletivaAbertaId === item.id_seletiva;
 
     return (
       <View style={styles.card}>
@@ -176,6 +247,54 @@ const MySeletivasScreen: React.FC = () => {
               <Text style={styles.buttonText}>Cancelar inscrição</Text>
             )}
           </TouchableOpacity>
+        )}
+
+        {ehTime && (
+          <>
+            <TouchableOpacity
+              style={[styles.button, styles.inscritosButton]}
+              onPress={() => carregarInscritos(item.id_seletiva)}
+              disabled={carregandoInscritosId === item.id_seletiva}
+            >
+              {carregandoInscritosId === item.id_seletiva ? (
+                <ActivityIndicator color="#F9FAFB" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {aberta ? 'Esconder inscritos' : 'Ver inscritos'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {aberta && (
+              <View style={styles.inscritosContainer}>
+                {inscritos.length === 0 ? (
+                  <Text style={styles.inscritoVazio}>
+                    Nenhum jogador inscrito ainda.
+                  </Text>
+                ) : (
+                  inscritos.map((inscrito) => (
+                    <View
+                      key={inscrito.id_inscricao}
+                      style={styles.inscritoItem}
+                    >
+                      <Text style={styles.inscritoNome}>
+                        {inscrito.nm_usuario}
+                      </Text>
+                      <Text style={styles.inscritoInfo}>
+                        {inscrito.email_usuario}
+                      </Text>
+                      {inscrito.data_inscricao && (
+                        <Text style={styles.inscritoInfo}>
+                          Inscrito em:{' '}
+                          {formatarDataBr(inscrito.data_inscricao)}
+                        </Text>
+                      )}
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </>
         )}
       </View>
     );
@@ -291,6 +410,9 @@ const styles = StyleSheet.create({
   cancelarButton: {
     backgroundColor: '#EF4444',
   },
+  inscritosButton: {
+    backgroundColor: '#2563EB',
+  },
   buttonText: {
     color: '#F9FAFB',
     fontWeight: '600',
@@ -314,5 +436,35 @@ const styles = StyleSheet.create({
   messageText: {
     color: '#9CA3AF',
     textAlign: 'center',
+  },
+  inscritosContainer: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#1F2937',
+  },
+  inscritoItem: {
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F2937',
+  },
+  inscritoNome: {
+    color: '#F9FAFB',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  inscritoInfo: {
+    color: '#D1D5DB',
+    fontSize: 12,
+  },
+  inscritoStatus: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  inscritoVazio: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });

@@ -20,15 +20,25 @@ import { useAuth } from '../context/AuthContext';
 interface Comentario {
   id_comentario: number;
   texto_comentario: string;
-  data_comentario: string;
+  autor: string;
+}
+
+interface PostagemDetalhe {
+  id_postagem: number;
+  texto_postagem: string;
+  img_postagem?: string | null;
+  categoria?: string | null;
+  tag?: string | null;
+  curtidas_count?: number;
+  comentarios_count?: number;
   autor: string;
   avatar?: string | null;
   tipo_autor: 'usuario' | 'time';
 }
 
 const PostDetailsScreen = ({ route, navigation }: any) => {
-  const { id_postagem } = route.params;
-  const [postagem, setPostagem] = useState<any>(null);
+  const { id_postagem, focusComment } = route.params;
+  const [postagem, setPostagem] = useState<PostagemDetalhe | null>(null);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [loading, setLoading] = useState(true);
   const [comentarioTexto, setComentarioTexto] = useState('');
@@ -42,15 +52,35 @@ const PostDetailsScreen = ({ route, navigation }: any) => {
       const post = (postResponse.data.data || []).find(
         (p: any) => p.id_postagem === id_postagem
       );
-      setPostagem(post || null);
+
+      if (post) {
+        const detalhe: PostagemDetalhe = {
+          id_postagem: post.id_postagem,
+          texto_postagem: post.texto_postagem,
+          img_postagem: post.img_postagem ?? null,
+          categoria: post.categoria ?? null,
+          tag: post.tag ?? null,
+          curtidas_count: post.curtidas_count ?? 0,
+          comentarios_count: post.comentarios_count ?? 0,
+          autor: post.autor,
+          avatar: post.avatar ?? null,
+          tipo_autor: post.tipo_autor as 'usuario' | 'time',
+        };
+        setPostagem(detalhe);
+      } else {
+        setPostagem(null);
+      }
 
       const comentariosResponse = await api.get(
         `/comentarios/postagem/${id_postagem}`
       );
       setComentarios(comentariosResponse.data.data || []);
     } catch (e) {
-      console.log('Erro ao carregar detalhes da postagem', e);
-      Alert.alert('Erro', 'Não foi possível carregar os detalhes da postagem.');
+      console.log('Erro ao carregar detalhes da postagem:', e);
+      Alert.alert(
+        'Erro',
+        'Não foi possível carregar os detalhes da postagem e comentários.'
+      );
     } finally {
       setLoading(false);
     }
@@ -71,34 +101,37 @@ const PostDetailsScreen = ({ route, navigation }: any) => {
 
     try {
       setSending(true);
-      await api.post('/comentarios', {
-        id_postagem,
+      const payload = {
         texto_comentario: comentarioTexto.trim(),
-      });
+      };
 
+      const response = await api.post(
+        `/comentarios/postagem/${id_postagem}`,
+        payload
+      );
+
+      const novoComentario: Comentario = {
+        id_comentario: response.data.data.id_comentario,
+        texto_comentario: response.data.data.texto_comentario,
+        autor: response.data.data.autor,
+      };
+
+      setComentarios((prev) => [novoComentario, ...prev]);
       setComentarioTexto('');
-      await loadData();
-    } catch (e: any) {
-      console.log('Erro ao comentar', e?.response || e);
-
-      if (e?.response?.status === 401) {
-        Alert.alert(
-          'Sessão expirada',
-          'Faça login novamente para comentar.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Login'),
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Erro', 'Não foi possível enviar o comentário.');
-      }
+    } catch (e) {
+      console.log('Erro ao enviar comentário:', e);
+      Alert.alert('Erro', 'Não foi possível enviar o comentário.');
     } finally {
       setSending(false);
     }
   };
+
+  const renderComentario = ({ item }: { item: Comentario }) => (
+    <View style={styles.commentBox}>
+      <Text style={styles.commentAutor}>{item.autor}</Text>
+      <Text style={styles.commentText}>{item.texto_comentario}</Text>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -120,15 +153,18 @@ const PostDetailsScreen = ({ route, navigation }: any) => {
     );
   }
 
-  const renderComentario = ({ item }: { item: Comentario }) => (
-    <View style={styles.commentBox}>
-      <Text style={styles.commentAutor}>{item.autor}</Text>
-      <Text style={styles.commentText}>{item.texto_comentario}</Text>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
+      {/* HEADER COM BOTÃO DE VOLTAR */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>{'< Voltar'}</Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         ListHeaderComponent={
           <PostCard
@@ -197,41 +233,34 @@ const styles = StyleSheet.create({
   commentBox: {
     marginHorizontal: 12,
     marginBottom: 8,
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#14263b',
     backgroundColor: '#111827',
+    borderRadius: 8,
+    padding: 10,
   },
   commentAutor: {
-    color: '#e28e45',
+    color: '#E5E7EB',
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   commentText: {
-    color: '#E5E7EB',
+    color: '#D1D5DB',
   },
   commentInputBox: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 16, // base, sobrescrita pelo insets.bottom no componente
-    backgroundColor: '#182d46ff',
+    backgroundColor: '#111827',
     flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#14263b',
+    paddingHorizontal: 12,
+    paddingTop: 8,
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#182d46ff',
+    backgroundColor: '#1F2937',
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#374151',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     color: '#F9FAFB',
     marginRight: 8,
@@ -245,5 +274,21 @@ const styles = StyleSheet.create({
   commentButtonText: {
     color: '#ffffff',
     fontWeight: '600',
+  },
+  header: {
+    paddingTop: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  backButtonText: {
+    color: '#E5E7EB',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

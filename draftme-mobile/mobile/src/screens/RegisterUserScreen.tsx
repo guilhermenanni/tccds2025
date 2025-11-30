@@ -55,31 +55,33 @@ const RegisterUserScreen = ({ navigation }: any) => {
     setDtNasc(formatted);
   };
 
-  const validarCampos = () => {
-    if (!nm_usuario.trim()) return 'Informe o nome.';
-    if (!email_usuario.trim()) return 'Informe o e-mail.';
-    if (!email_usuario.includes('@')) return 'E-mail inválido.';
-    if (senha_usuario.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
-    if (senha_usuario !== confirmarSenha) return 'As senhas não conferem.';
-    if (cpf_usuario.length !== 11) return 'CPF deve ter 11 dígitos numéricos.';
-    if (tel_usuario.length < 10) return 'Telefone deve ter DDD + número.';
-    if (dt_nasc_usuario.length !== 10) return 'Data de nascimento inválida. Use dd/mm/aaaa.';
+const validarCampos = () => {
+  if (!nm_usuario.trim()) return 'Informe o nome.';
+  if (!email_usuario.trim()) return 'Informe o e-mail.';
+  if (!email_usuario.includes('@')) return 'E-mail inválido.';
+  if (senha_usuario.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
+  if (senha_usuario !== confirmarSenha) return 'As senhas não conferem.';
+  if (cpf_usuario.length !== 11) return 'CPF deve ter 11 dígitos numéricos.';
+  if (tel_usuario.length < 10) return 'Telefone deve ter DDD + número.';
+  if (dt_nasc_usuario.length !== 10) return 'Data de nascimento inválida. Use dd/mm/aaaa.';
 
-    const [dia, mes, ano] = dt_nasc_usuario.split('/');
-    if (!dia || !mes || !ano || ano.length !== 4) {
-      return 'Data de nascimento inválida.';
-    }
+  const [dia, mes, ano] = dt_nasc_usuario.split('/');
+  if (!dia || !mes || !ano || ano.length !== 4) {
+    return 'Data de nascimento inválida.';
+  }
 
-    const d = Number(dia);
-    const m = Number(mes);
-    const a = Number(ano);
+  const d = Number(dia);
+  const m = Number(mes);
+  const a = Number(ano);
+  const anoAtual = new Date().getFullYear();
 
-    if (d < 1 || d > 31 || m < 1 || m > 12 || a < 1900) {
-      return 'Data de nascimento inválida.';
-    }
+  if (d < 1 || d > 31 || m < 1 || m > 12 || a < 1900 || a > anoAtual) {
+    return 'Data de nascimento inválida.';
+  }
 
-    return null;
-  };
+  return null;
+};
+
 
   const handleRegister = async () => {
     setErro(null);

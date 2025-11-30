@@ -183,6 +183,7 @@ export const obterPerfilTime = async (req, res) => {
           id_time,
           nm_time,
           email_time,
+          tel_time,
           time_cnpj,
           categoria_time,
           esporte_time,
@@ -237,6 +238,7 @@ export const atualizarPerfilTime = async (req, res) => {
       img_time,
       sobre_time,
       sobre, // se o front mandar "sobre" ao invés de "sobre_time"
+      tel_time,
     } = req.body;
 
     const sobreFinal =
@@ -249,7 +251,8 @@ export const atualizarPerfilTime = async (req, res) => {
           nm_time = COALESCE(?, nm_time),
           esporte_time = COALESCE(?, esporte_time),
           sobre_time = COALESCE(?, sobre_time),
-          img_time = COALESCE(?, img_time)
+          img_time = COALESCE(?, img_time),
+          tel_time = COALESCE(?, tel_time)
         WHERE id_time = ?
       `,
       [
@@ -257,6 +260,7 @@ export const atualizarPerfilTime = async (req, res) => {
         esporte_time ?? null,
         sobreFinal,
         img_time ?? null,
+        tel_time ?? null,
         id,
       ]
     );
@@ -267,6 +271,7 @@ export const atualizarPerfilTime = async (req, res) => {
           id_time,
           nm_time,
           email_time,
+          tel_time,
           time_cnpj,
           categoria_time,
           esporte_time,

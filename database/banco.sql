@@ -17,6 +17,7 @@ CREATE TABLE tb_time (
     img_time VARCHAR(255)
 );
 ALTER TABLE tb_time DROP COLUMN localizacao_time;
+ALTER TABLE tb_time ADD COLUMN tel_time varchar(20);
 
 -- criaÃ§Ã£o da tabela de usuÃ¡rios
 CREATE TABLE tb_usuario (

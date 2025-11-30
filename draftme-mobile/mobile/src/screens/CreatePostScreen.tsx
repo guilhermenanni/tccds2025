@@ -199,59 +199,124 @@ const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleCreateSeletiva = async () => {
-    // Campos obrigatórios segundo o backend:
-    // título, sobre, localizacao, data, hora
-    if (
-      !tituloSeletiva.trim() ||
-      !descricaoSeletiva.trim() ||
-      !localSeletiva.trim() ||
-      !dataSeletiva.trim() ||
-      !horaSeletiva.trim()
-    ) {
-      Alert.alert(
-        'Aviso',
-        'Preencha título, sobre, localização, data e horário da seletiva.'
-      );
-      return;
-    }
+const handleCreateSeletiva = async () => {
+  // Campos obrigatórios segundo o backend:
+  // título, sobre, localizacao, data, hora
+  if (
+    !tituloSeletiva.trim() ||
+    !descricaoSeletiva.trim() ||
+    !localSeletiva.trim() ||
+    !dataSeletiva.trim() ||
+    !horaSeletiva.trim()
+  ) {
+    Alert.alert(
+      'Aviso',
+      'Preencha título, sobre, localização, data e horário da seletiva.'
+    );
+    return;
+  }
 
-    const dataSql = toSqlDate(dataSeletiva.trim());
-    const horaSql = toSqlTime(horaSeletiva.trim());
-    const categoriaFinal = categoriaSeletiva || 'Geral';
-    const subcategoriaFinal = nivelSeletiva || 'Geral';
-    const cidadeFinal =
-      cidadeSeletiva.trim().length > 0
-        ? cidadeSeletiva.trim()
-        : localSeletiva.trim(); // fallback se o cara esquecer a cidade
+  // Validação da data da seletiva (DD/MM/AAAA)
+  const [diaStr, mesStr, anoStr] = dataSeletiva.trim().split('/');
+  const dia = Number(diaStr);
+  const mes = Number(mesStr);
+  const ano = Number(anoStr);
 
-    setCarregando(true);
-    try {
-      await api.post('/seletivas', {
-        titulo: tituloSeletiva.trim(),
-        sobre: descricaoSeletiva.trim(),
-        localizacao: localSeletiva.trim(),
-        data_seletiva: dataSql,
-        hora: horaSql,
-        categoria: categoriaFinal,
-        subcategoria: subcategoriaFinal,
-        cidade: cidadeFinal,
-      });
+  if (
+    !diaStr ||
+    !mesStr ||
+    !anoStr ||
+    anoStr.length !== 4 ||
+    Number.isNaN(dia) ||
+    Number.isNaN(mes) ||
+    Number.isNaN(ano)
+  ) {
+    Alert.alert('Aviso', 'Data da seletiva inválida. Use o formato dd/mm/aaaa.');
+    return;
+  }
 
-      limparCamposSeletiva();
-      Alert.alert('Sucesso', 'Seletiva criada com sucesso!');
-      navigation.goBack();
-    } catch (error: any) {
-      console.error('Erro ao criar seletiva:', error?.response?.data || error);
-      const msg =
-        error?.response?.data?.message ||
-        error?.response?.data?.erro ||
-        'Não foi possível criar a seletiva.';
-      Alert.alert('Erro', msg);
-    } finally {
-      setCarregando(false);
-    }
-  };
+  const dataObjeto = new Date(ano, mes - 1, dia);
+  if (
+    Number.isNaN(dataObjeto.getTime()) ||
+    dataObjeto.getDate() !== dia ||
+    dataObjeto.getMonth() !== mes - 1 ||
+    dataObjeto.getFullYear() !== ano
+  ) {
+    Alert.alert('Aviso', 'Data da seletiva inválida.');
+    return;
+  }
+
+  // Validação do horário da seletiva (HH:MM)
+  const [horaStr, minutoStr] = horaSeletiva.trim().split(':');
+  const hora = Number(horaStr);
+  const minuto = Number(minutoStr);
+
+  if (
+    !horaStr ||
+    !minutoStr ||
+    Number.isNaN(hora) ||
+    Number.isNaN(minuto) ||
+    hora < 0 ||
+    hora > 23 ||
+    minuto < 0 ||
+    minuto > 59
+  ) {
+    Alert.alert(
+      'Aviso',
+      'Horário da seletiva inválido. Use um horário entre 00:00 e 23:59.'
+    );
+    return;
+  }
+
+  // Verifica se a combinação data + horário está no passado
+  const agora = new Date();
+  const dataHoraSeletiva = new Date(ano, mes - 1, dia, hora, minuto, 0, 0);
+  if (dataHoraSeletiva.getTime() < agora.getTime()) {
+    Alert.alert(
+      'Aviso',
+      'A data/horário da seletiva não pode estar no passado.'
+    );
+    return;
+  }
+
+  const dataSql = toSqlDate(dataSeletiva.trim());
+  const horaSql = toSqlTime(horaSeletiva.trim());
+
+  const categoriaFinal = categoriaSeletiva || 'Geral';
+  const subcategoriaFinal = nivelSeletiva || 'Geral';
+  const cidadeFinal =
+    cidadeSeletiva.trim().length > 0
+      ? cidadeSeletiva.trim()
+      : localSeletiva.trim(); // fallback se o cara esquecer a cidade
+
+  setCarregando(true);
+  try {
+    await api.post('/seletivas', {
+      titulo: tituloSeletiva.trim(),
+      sobre: descricaoSeletiva.trim(),
+      localizacao: localSeletiva.trim(),
+      data_seletiva: dataSql,
+      hora: horaSql,
+      categoria: categoriaFinal,
+      subcategoria: subcategoriaFinal,
+      cidade: cidadeFinal,
+    });
+
+    limparCamposSeletiva();
+    Alert.alert('Sucesso', 'Seletiva criada com sucesso!');
+    navigation.goBack();
+  } catch (error: any) {
+    console.error('Erro ao criar seletiva:', error?.response?.data || error);
+    const msg =
+      error?.response?.data?.message ||
+      error?.response?.data?.erro ||
+      'Não foi possível criar a seletiva.';
+    Alert.alert('Erro', msg);
+  } finally {
+    setCarregando(false);
+  }
+};
+
 
   const handleSubmit = () => {
     if (criandoPost) {
