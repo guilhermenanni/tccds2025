@@ -12,6 +12,10 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '../api/client';
@@ -199,124 +203,123 @@ const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ navigation }) => {
     }
   };
 
-const handleCreateSeletiva = async () => {
-  // Campos obrigatórios segundo o backend:
-  // título, sobre, localizacao, data, hora
-  if (
-    !tituloSeletiva.trim() ||
-    !descricaoSeletiva.trim() ||
-    !localSeletiva.trim() ||
-    !dataSeletiva.trim() ||
-    !horaSeletiva.trim()
-  ) {
-    Alert.alert(
-      'Aviso',
-      'Preencha título, sobre, localização, data e horário da seletiva.'
-    );
-    return;
-  }
+  const handleCreateSeletiva = async () => {
+    // Campos obrigatórios segundo o backend:
+    // título, sobre, localizacao, data, hora
+    if (
+      !tituloSeletiva.trim() ||
+      !descricaoSeletiva.trim() ||
+      !localSeletiva.trim() ||
+      !dataSeletiva.trim() ||
+      !horaSeletiva.trim()
+    ) {
+      Alert.alert(
+        'Aviso',
+        'Preencha título, sobre, localização, data e horário da seletiva.'
+      );
+      return;
+    }
 
-  // Validação da data da seletiva (DD/MM/AAAA)
-  const [diaStr, mesStr, anoStr] = dataSeletiva.trim().split('/');
-  const dia = Number(diaStr);
-  const mes = Number(mesStr);
-  const ano = Number(anoStr);
+    // Validação da data da seletiva (DD/MM/AAAA)
+    const [diaStr, mesStr, anoStr] = dataSeletiva.trim().split('/');
+    const dia = Number(diaStr);
+    const mes = Number(mesStr);
+    const ano = Number(anoStr);
 
-  if (
-    !diaStr ||
-    !mesStr ||
-    !anoStr ||
-    anoStr.length !== 4 ||
-    Number.isNaN(dia) ||
-    Number.isNaN(mes) ||
-    Number.isNaN(ano)
-  ) {
-    Alert.alert('Aviso', 'Data da seletiva inválida. Use o formato dd/mm/aaaa.');
-    return;
-  }
+    if (
+      !diaStr ||
+      !mesStr ||
+      !anoStr ||
+      anoStr.length !== 4 ||
+      Number.isNaN(dia) ||
+      Number.isNaN(mes) ||
+      Number.isNaN(ano)
+    ) {
+      Alert.alert('Aviso', 'Data da seletiva inválida. Use o formato dd/mm/aaaa.');
+      return;
+    }
 
-  const dataObjeto = new Date(ano, mes - 1, dia);
-  if (
-    Number.isNaN(dataObjeto.getTime()) ||
-    dataObjeto.getDate() !== dia ||
-    dataObjeto.getMonth() !== mes - 1 ||
-    dataObjeto.getFullYear() !== ano
-  ) {
-    Alert.alert('Aviso', 'Data da seletiva inválida.');
-    return;
-  }
+    const dataObjeto = new Date(ano, mes - 1, dia);
+    if (
+      Number.isNaN(dataObjeto.getTime()) ||
+      dataObjeto.getDate() !== dia ||
+      dataObjeto.getMonth() !== mes - 1 ||
+      dataObjeto.getFullYear() !== ano
+    ) {
+      Alert.alert('Aviso', 'Data da seletiva inválida.');
+      return;
+    }
 
-  // Validação do horário da seletiva (HH:MM)
-  const [horaStr, minutoStr] = horaSeletiva.trim().split(':');
-  const hora = Number(horaStr);
-  const minuto = Number(minutoStr);
+    // Validação do horário da seletiva (HH:MM)
+    const [horaStr, minutoStr] = horaSeletiva.trim().split(':');
+    const hora = Number(horaStr);
+    const minuto = Number(minutoStr);
 
-  if (
-    !horaStr ||
-    !minutoStr ||
-    Number.isNaN(hora) ||
-    Number.isNaN(minuto) ||
-    hora < 0 ||
-    hora > 23 ||
-    minuto < 0 ||
-    minuto > 59
-  ) {
-    Alert.alert(
-      'Aviso',
-      'Horário da seletiva inválido. Use um horário entre 00:00 e 23:59.'
-    );
-    return;
-  }
+    if (
+      !horaStr ||
+      !minutoStr ||
+      Number.isNaN(hora) ||
+      Number.isNaN(minuto) ||
+      hora < 0 ||
+      hora > 23 ||
+      minuto < 0 ||
+      minuto > 59
+    ) {
+      Alert.alert(
+        'Aviso',
+        'Horário da seletiva inválido. Use um horário entre 00:00 e 23:59.'
+      );
+      return;
+    }
 
-  // Verifica se a combinação data + horário está no passado
-  const agora = new Date();
-  const dataHoraSeletiva = new Date(ano, mes - 1, dia, hora, minuto, 0, 0);
-  if (dataHoraSeletiva.getTime() < agora.getTime()) {
-    Alert.alert(
-      'Aviso',
-      'A data/horário da seletiva não pode estar no passado.'
-    );
-    return;
-  }
+    // Verifica se a combinação data + horário está no passado
+    const agora = new Date();
+    const dataHoraSeletiva = new Date(ano, mes - 1, dia, hora, minuto, 0, 0);
+    if (dataHoraSeletiva.getTime() < agora.getTime()) {
+      Alert.alert(
+        'Aviso',
+        'A data/horário da seletiva não pode estar no passado.'
+      );
+      return;
+    }
 
-  const dataSql = toSqlDate(dataSeletiva.trim());
-  const horaSql = toSqlTime(horaSeletiva.trim());
+    const dataSql = toSqlDate(dataSeletiva.trim());
+    const horaSql = toSqlTime(horaSeletiva.trim());
 
-  const categoriaFinal = categoriaSeletiva || 'Geral';
-  const subcategoriaFinal = nivelSeletiva || 'Geral';
-  const cidadeFinal =
-    cidadeSeletiva.trim().length > 0
-      ? cidadeSeletiva.trim()
-      : localSeletiva.trim(); // fallback se o cara esquecer a cidade
+    const categoriaFinal = categoriaSeletiva || 'Geral';
+    const subcategoriaFinal = nivelSeletiva || 'Geral';
+    const cidadeFinal =
+      cidadeSeletiva.trim().length > 0
+        ? cidadeSeletiva.trim()
+        : localSeletiva.trim(); // fallback se o cara esquecer a cidade
 
-  setCarregando(true);
-  try {
-    await api.post('/seletivas', {
-      titulo: tituloSeletiva.trim(),
-      sobre: descricaoSeletiva.trim(),
-      localizacao: localSeletiva.trim(),
-      data_seletiva: dataSql,
-      hora: horaSql,
-      categoria: categoriaFinal,
-      subcategoria: subcategoriaFinal,
-      cidade: cidadeFinal,
-    });
+    setCarregando(true);
+    try {
+      await api.post('/seletivas', {
+        titulo: tituloSeletiva.trim(),
+        sobre: descricaoSeletiva.trim(),
+        localizacao: localSeletiva.trim(),
+        data_seletiva: dataSql,
+        hora: horaSql,
+        categoria: categoriaFinal,
+        subcategoria: subcategoriaFinal,
+        cidade: cidadeFinal,
+      });
 
-    limparCamposSeletiva();
-    Alert.alert('Sucesso', 'Seletiva criada com sucesso!');
-    navigation.goBack();
-  } catch (error: any) {
-    console.error('Erro ao criar seletiva:', error?.response?.data || error);
-    const msg =
-      error?.response?.data?.message ||
-      error?.response?.data?.erro ||
-      'Não foi possível criar a seletiva.';
-    Alert.alert('Erro', msg);
-  } finally {
-    setCarregando(false);
-  }
-};
-
+      limparCamposSeletiva();
+      Alert.alert('Sucesso', 'Seletiva criada com sucesso!');
+      navigation.goBack();
+    } catch (error: any) {
+      console.error('Erro ao criar seletiva:', error?.response?.data || error);
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.erro ||
+        'Não foi possível criar a seletiva.';
+      Alert.alert('Erro', msg);
+    } finally {
+      setCarregando(false);
+    }
+  };
 
   const handleSubmit = () => {
     if (criandoPost) {
@@ -328,259 +331,284 @@ const handleCreateSeletiva = async () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.box}>
-          {/* Se for time, mostra o seletor "Postagem | Seletiva" */}
-          {ehTime && (
-            <View style={styles.toggleRow}>
-              <TouchableOpacity
-                style={[
-                  styles.toggleButton,
-                  modoTime === 'postagem' && styles.toggleButtonActive,
-                ]}
-                onPress={() => setModoTime('postagem')}
-              >
-                <Text
-                  style={[
-                    styles.toggleButtonText,
-                    modoTime === 'postagem' && styles.toggleButtonTextActive,
-                  ]}
-                >
-                  Postagem
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.toggleButton,
-                  modoTime === 'seletiva' && styles.toggleButtonActive,
-                ]}
-                onPress={() => setModoTime('seletiva')}
-              >
-                <Text
-                  style={[
-                    styles.toggleButtonText,
-                    modoTime === 'seletiva' && styles.toggleButtonTextActive,
-                  ]}
-                >
-                  Seletiva
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <Text style={styles.title}>{tituloTela}</Text>
-
-          {criandoPost ? (
-            <>
-              {/* FORMULÁRIO DE POSTAGEM (USUÁRIO + TIME) */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Texto da postagem</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  multiline
-                  value={texto_postagem}
-                  onChangeText={setTextoPostagem}
-                  placeholder="Compartilhe algo com a comunidade..."
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Categoria (opcional)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={categoriaPostagem}
-                  onChangeText={setCategoriaPostagem}
-                  placeholder="Ex.: Futebol, Basquete..."
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Tag (opcional)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={tagPostagem}
-                  onChangeText={setTagPostagem}
-                  placeholder="Ex.: #sub17, #feminino..."
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              {/* Imagem da postagem */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Imagem (opcional)</Text>
-                <View style={styles.imageRow}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.box}>
+              {/* Se for time, mostra o seletor "Postagem | Seletiva" */}
+              {ehTime && (
+                <View style={styles.toggleRow}>
                   <TouchableOpacity
-                    style={styles.imageButton}
-                    onPress={escolherImagem}
+                    style={[
+                      styles.toggleButton,
+                      modoTime === 'postagem' && styles.toggleButtonActive,
+                    ]}
+                    onPress={() => setModoTime('postagem')}
                   >
-                    <Text style={styles.imageButtonText}>
-                      {imagemPreview ? 'Trocar imagem' : 'Selecionar imagem'}
+                    <Text
+                      style={[
+                        styles.toggleButtonText,
+                        modoTime === 'postagem' && styles.toggleButtonTextActive,
+                      ]}
+                    >
+                      Postagem
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.toggleButton,
+                      modoTime === 'seletiva' && styles.toggleButtonActive,
+                    ]}
+                    onPress={() => setModoTime('seletiva')}
+                  >
+                    <Text
+                      style={[
+                        styles.toggleButtonText,
+                        modoTime === 'seletiva' && styles.toggleButtonTextActive,
+                      ]}
+                    >
+                      Seletiva
                     </Text>
                   </TouchableOpacity>
                 </View>
+              )}
 
-                {imagemPreview && (
-                  <View style={styles.imagePreviewBox}>
-                    <Image
-                      source={{ uri: imagemPreview }}
-                      style={styles.imagePreview}
-                      resizeMode="cover"
+              <Text style={styles.title}>{tituloTela}</Text>
+
+              {criandoPost ? (
+                <>
+                  {/* FORMULÁRIO DE POSTAGEM (USUÁRIO + TIME) */}
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Texto da postagem</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      multiline
+                      value={texto_postagem}
+                      onChangeText={setTextoPostagem}
+                      placeholder="Compartilhe algo com a comunidade..."
+                      placeholderTextColor="#6B7280"
                     />
                   </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Categoria (opcional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={categoriaPostagem}
+                      onChangeText={setCategoriaPostagem}
+                      placeholder="Ex.: Futebol, Basquete..."
+                      placeholderTextColor="#6B7280"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Tag (opcional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={tagPostagem}
+                      onChangeText={setTagPostagem}
+                      placeholder="Ex.: #sub17, #feminino..."
+                      placeholderTextColor="#6B7280"
+                    />
+                  </View>
+
+                  {/* Imagem da postagem */}
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Imagem (opcional)</Text>
+                    <View style={styles.imageRow}>
+                      <TouchableOpacity
+                        style={styles.imageButton}
+                        onPress={escolherImagem}
+                      >
+                        <Text style={styles.imageButtonText}>
+                          {imagemPreview ? 'Trocar imagem' : 'Selecionar imagem'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {imagemPreview && (
+                      <View style={styles.imagePreviewBox}>
+                        <Image
+                          source={{ uri: imagemPreview }}
+                          style={styles.imagePreview}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
+                  </View>
+                </>
+              ) : (
+                <>
+                  {/* FORMULÁRIO DE SELETIVA (APENAS TIME) */}
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Título da seletiva</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={tituloSeletiva}
+                      onChangeText={setTituloSeletiva}
+                      placeholder="Ex.: Peneira sub-17"
+                      placeholderTextColor="#6B7280"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Sobre</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      multiline
+                      value={descricaoSeletiva}
+                      onChangeText={setDescricaoSeletiva}
+                      placeholder="Explique como funciona a seletiva..."
+                      placeholderTextColor="#6B7280"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>
+                      Localização (campo, ginásio...)
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={localSeletiva}
+                      onChangeText={setLocalSeletiva}
+                      placeholder="Ex.: Estádio Municipal, Quadra do Bairro..."
+                      placeholderTextColor="#6B7280"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Cidade</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={cidadeSeletiva}
+                      onChangeText={setCidadeSeletiva}
+                      placeholder="Ex.: São José dos Campos"
+                      placeholderTextColor="#6B7280"
+                    />
+                  </View>
+
+                  <View style={styles.row}>
+                    <View style={[styles.field, styles.fieldHalf]}>
+                      <Text style={styles.label}>Data</Text>
+                      <TextInput
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={dataSeletiva}
+                        onChangeText={(text) =>
+                          setDataSeletiva(formatDateBR(text))
+                        }
+                        placeholder="DD/MM/AAAA"
+                        placeholderTextColor="#6B7280"
+                        maxLength={10}
+                      />
+                    </View>
+
+                    <View style={[styles.field, styles.fieldHalf]}>
+                      <Text style={styles.label}>Horário</Text>
+                      <TextInput
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={horaSeletiva}
+                        onChangeText={(text) =>
+                          setHoraSeletiva(formatTime(text))
+                        }
+                        placeholder="HH:MM"
+                        placeholderTextColor="#6B7280"
+                        maxLength={5}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Dropdowns de categoria e nível */}
+                  <View style={styles.row}>
+                    <View style={[styles.field, styles.fieldHalf]}>
+                      <Text style={styles.label}>Categoria</Text>
+                      <TouchableOpacity
+                        style={styles.dropdown}
+                        onPress={() =>
+                          setDropdownCategoriaAberto((prev) => !prev)
+                        }
+                      >
+                        <Text style={styles.dropdownText}>
+                          {categoriaSeletiva}
+                        </Text>
+                      </TouchableOpacity>
+                      {dropdownCategoriaAberto && (
+                        <View style={styles.dropdownList}>
+                          {CATEGORIAS.map((cat) => (
+                            <TouchableOpacity
+                              key={cat}
+                              style={styles.dropdownItem}
+                              onPress={() => {
+                                setCategoriaSeletiva(cat);
+                                setDropdownCategoriaAberto(false);
+                              }}
+                            >
+                              <Text style={styles.dropdownItemText}>
+                                {cat}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={[styles.field, styles.fieldHalf]}>
+                      <Text style={styles.label}>Nível</Text>
+                      <TouchableOpacity
+                        style={styles.dropdown}
+                        onPress={() =>
+                          setDropdownNivelAberto((prev) => !prev)
+                        }
+                      >
+                        <Text style={styles.dropdownText}>{nivelSeletiva}</Text>
+                      </TouchableOpacity>
+                      {dropdownNivelAberto && (
+                        <View style={styles.dropdownList}>
+                          {NIVEIS.map((nivel) => (
+                            <TouchableOpacity
+                              key={nivel}
+                              style={styles.dropdownItem}
+                              onPress={() => {
+                                setNivelSeletiva(nivel);
+                                setDropdownNivelAberto(false);
+                              }}
+                            >
+                              <Text style={styles.dropdownItemText}>
+                                {nivel}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </>
+              )}
+
+              <TouchableOpacity
+                style={[styles.button, carregando && styles.buttonDisabled]}
+                onPress={handleSubmit}
+                disabled={carregando}
+              >
+                {carregando ? (
+                  <ActivityIndicator size="small" color="#F9FAFB" />
+                ) : (
+                  <Text style={styles.buttonText}>{textoBotao}</Text>
                 )}
-              </View>
-            </>
-          ) : (
-            <>
-              {/* FORMULÁRIO DE SELETIVA (APENAS TIME) */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Título da seletiva</Text>
-                <TextInput
-                  style={styles.input}
-                  value={tituloSeletiva}
-                  onChangeText={setTituloSeletiva}
-                  placeholder="Ex.: Peneira sub-17"
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Sobre</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  multiline
-                  value={descricaoSeletiva}
-                  onChangeText={setDescricaoSeletiva}
-                  placeholder="Explique como funciona a seletiva..."
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Localização (campo, ginásio...)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={localSeletiva}
-                  onChangeText={setLocalSeletiva}
-                  placeholder="Ex.: Estádio Municipal, Quadra do Bairro..."
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Cidade</Text>
-                <TextInput
-                  style={styles.input}
-                  value={cidadeSeletiva}
-                  onChangeText={setCidadeSeletiva}
-                  placeholder="Ex.: São José dos Campos"
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              <View style={styles.row}>
-                <View style={[styles.field, styles.fieldHalf]}>
-                  <Text style={styles.label}>Data</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={dataSeletiva}
-                    onChangeText={(text) => setDataSeletiva(formatDateBR(text))}
-                    placeholder="DD/MM/AAAA"
-                    placeholderTextColor="#6B7280"
-                    maxLength={10}
-                  />
-                </View>
-
-                <View style={[styles.field, styles.fieldHalf]}>
-                  <Text style={styles.label}>Horário</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={horaSeletiva}
-                    onChangeText={(text) => setHoraSeletiva(formatTime(text))}
-                    placeholder="HH:MM"
-                    placeholderTextColor="#6B7280"
-                    maxLength={5}
-                  />
-                </View>
-              </View>
-
-              {/* Dropdowns de categoria e nível */}
-              <View style={styles.row}>
-                <View style={[styles.field, styles.fieldHalf]}>
-                  <Text style={styles.label}>Categoria</Text>
-                  <TouchableOpacity
-                    style={styles.dropdown}
-                    onPress={() =>
-                      setDropdownCategoriaAberto((prev) => !prev)
-                    }
-                  >
-                    <Text style={styles.dropdownText}>{categoriaSeletiva}</Text>
-                  </TouchableOpacity>
-                  {dropdownCategoriaAberto && (
-                    <View style={styles.dropdownList}>
-                      {CATEGORIAS.map((cat) => (
-                        <TouchableOpacity
-                          key={cat}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setCategoriaSeletiva(cat);
-                            setDropdownCategoriaAberto(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownItemText}>{cat}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-                <View style={[styles.field, styles.fieldHalf]}>
-                  <Text style={styles.label}>Nível</Text>
-                  <TouchableOpacity
-                    style={styles.dropdown}
-                    onPress={() => setDropdownNivelAberto((prev) => !prev)}
-                  >
-                    <Text style={styles.dropdownText}>{nivelSeletiva}</Text>
-                  </TouchableOpacity>
-                  {dropdownNivelAberto && (
-                    <View style={styles.dropdownList}>
-                      {NIVEIS.map((nivel) => (
-                        <TouchableOpacity
-                          key={nivel}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setNivelSeletiva(nivel);
-                            setDropdownNivelAberto(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownItemText}>{nivel}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              </View>
-            </>
-          )}
-
-          <TouchableOpacity
-            style={[styles.button, carregando && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={carregando}
-          >
-            {carregando ? (
-              <ActivityIndicator size="small" color="#F9FAFB" />
-            ) : (
-              <Text style={styles.buttonText}>{textoBotao}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -594,6 +622,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 16,
+    paddingBottom: 32, // ajuda quando teclado sobe
   },
   box: {
     backgroundColor: '#213e60',

@@ -40,6 +40,23 @@ interface PerfilNormalizado {
   sobre?: string | null;
 }
 
+// helper de formatação de telefone
+const formatTelefone = (valor?: string | null) => {
+  if (!valor) return '';
+  const d = valor.replace(/\D/g, '').slice(0, 11);
+
+  if (d.length <= 2) {
+    return d;
+  }
+  if (d.length <= 6) {
+    return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  }
+  if (d.length <= 10) {
+    return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  }
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
 const ProfileScreen: React.FC<any> = ({ navigation }) => {
   const { user, tipoSelecionado, token, logout } = useAuth();
   const [perfil, setPerfil] = useState<PerfilNormalizado | null>(null);
@@ -48,7 +65,7 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
   const [editando, setEditando] = useState(false);
 
   const [nomeEdit, setNomeEdit] = useState('');
-  const [telEdit, setTelEdit] = useState('');
+  const [telEdit, setTelEdit] = useState(''); // guarda só dígitos
   const [sobreEdit, setSobreEdit] = useState('');
   const [imgLocal, setImgLocal] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -86,7 +103,7 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
 
         setPerfil(perfilNorm);
         setNomeEdit(perfilNorm.nome);
-        setTelEdit(perfilNorm.telefone || '');
+        setTelEdit((perfilNorm.telefone || '').replace(/\D/g, '').slice(0, 11));
         setSobreEdit(perfilNorm.sobre || '');
         setImgLocal(null);
 
@@ -124,7 +141,7 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
 
         setPerfil(perfilNorm);
         setNomeEdit(perfilNorm.nome);
-        setTelEdit(perfilNorm.telefone || '');
+        setTelEdit((perfilNorm.telefone || '').replace(/\D/g, '').slice(0, 11));
         setSobreEdit(perfilNorm.sobre || '');
         setImgLocal(null);
 
@@ -199,7 +216,7 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
       if (perfil.tipo === 'usuario') {
         const payload: any = {
           nm_usuario: nomeEdit,
-          tel_usuario: telEdit || null,
+          tel_usuario: telEdit || null, // só dígitos
           sobre: sobreEdit || null,
         };
         if (imgLocal) {
@@ -214,7 +231,7 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
       } else {
         const payload: any = {
           nm_time: nomeEdit,
-          tel_time: telEdit || null,
+          tel_time: telEdit || null, // só dígitos
           sobre_time: sobreEdit || null,
         };
         if (imgLocal) {
@@ -237,6 +254,11 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
     } finally {
       setSalvando(false);
     }
+  };
+
+  const handleChangeTelEdit = (value: string) => {
+    const onlyDigits = value.replace(/\D/g, '').slice(0, 11);
+    setTelEdit(onlyDigits);
   };
 
   if (loading) {
@@ -273,6 +295,11 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{perfil.nome}</Text>
           <Text style={styles.email}>{perfil.email}</Text>
+          {!editando && perfil.telefone && (
+            <Text style={styles.phone}>
+              {formatTelefone(perfil.telefone)}
+            </Text>
+          )}
           {!editando && perfil.sobre && (
             <Text style={styles.about}>{perfil.sobre}</Text>
           )}
@@ -325,14 +352,12 @@ const ProfileScreen: React.FC<any> = ({ navigation }) => {
             <Text style={styles.editLabel}>Telefone</Text>
             <TextInput
               style={styles.editInput}
-              value={telEdit}
-              onChangeText={(value) =>
-                setTelEdit(value.replace(/\D/g, '').slice(0, 11))
-              }
-              placeholder="DDD + número"
+              value={formatTelefone(telEdit)}
+              onChangeText={handleChangeTelEdit}
+              placeholder="(11) 91234-5678"
               placeholderTextColor="#6B7280"
               keyboardType="numeric"
-              maxLength={11}
+              maxLength={15} // por causa da máscara visual
             />
           </View>
 
@@ -466,6 +491,11 @@ const styles = StyleSheet.create({
   },
   email: {
     color: '#9CA3AF',
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  phone: {
+    color: '#D1D5DB',
     fontSize: 13,
     marginBottom: 4,
   },

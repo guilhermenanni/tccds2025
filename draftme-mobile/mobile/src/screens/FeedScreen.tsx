@@ -39,6 +39,8 @@ const FeedScreen = ({ navigation }: any) => {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
+
       const response = await api.get('/postagens');
 
       const posts: Postagem[] = (response.data.data || []).map((item: any) => ({
@@ -47,7 +49,8 @@ const FeedScreen = ({ navigation }: any) => {
         img_postagem: item.img_postagem ?? null,
         categoria: item.categoria ?? null,
         tag: item.tag ?? null,
-        autor: item.autor || '',
+        // garante que nunca vai ficar vazio
+        autor: item.autor && item.autor.trim().length > 0 ? item.autor : 'Usuário',
         avatar: item.avatar ?? null,
         curtidas_count: item.curtidas_count ?? 0,
         comentarios_count: item.comentarios_count ?? 0,
@@ -135,6 +138,8 @@ const FeedScreen = ({ navigation }: any) => {
     });
   };
 
+  const hasPosts = data.length > 0;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -183,6 +188,18 @@ const FeedScreen = ({ navigation }: any) => {
               tintColor="#e28e45"
             />
           }
+          ListEmptyComponent={
+            !loading ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>Nenhuma postagem ainda</Text>
+                <Text style={styles.emptySubtitle}>
+                  Quando jogadores e times começarem a publicar, tudo aparece
+                  aqui no feed.
+                </Text>
+              </View>
+            ) : null
+          }
+          contentContainerStyle={!hasPosts ? styles.emptyContent : undefined}
         />
       )}
     </SafeAreaView>
@@ -199,6 +216,7 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     paddingHorizontal: 16,
@@ -215,5 +233,25 @@ const styles = StyleSheet.create({
     color: '#e28e45',
     fontWeight: '500',
     fontSize: 16,
+  },
+  emptyContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    color: '#F9FAFB',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

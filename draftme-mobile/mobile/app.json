@@ -22,6 +22,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
+        "windowSoftInputMode": "adjustResize",
         "backgroundColor": "#0B1020"
       },
       "package": "com.draftme.app"

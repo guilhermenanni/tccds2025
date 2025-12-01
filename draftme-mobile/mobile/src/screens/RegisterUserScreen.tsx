@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
+const MIN_YEAR = 1800;
+
 const RegisterUserScreen = ({ navigation }: any) => {
   const { registerUsuario } = useAuth();
 
@@ -22,21 +24,40 @@ const RegisterUserScreen = ({ navigation }: any) => {
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
   const [cpf_usuario, setCpf] = useState('');
-  const [dt_nasc_usuario, setDtNasc] = useState(''); // dd/mm/aaaa na UI
-  const [tel_usuario, setTelefone] = useState('');
+  const [dt_nasc_usuario, setDtNasc] = useState(''); // guarda no formato dd/mm/aaaa
+  const [tel_usuario, setTelefone] = useState('');   // guarda só dígitos
 
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // --- Máscaras e validações de input ---
+  // --- Helpers de formatação e validação ---
 
   const handleCpfChange = (value: string) => {
     const onlyDigits = value.replace(/\D/g, '').slice(0, 11); // só número, max 11
     setCpf(onlyDigits);
   };
 
+  const formatTelefone = (digits: string) => {
+    // formata visualmente: (11) 91234-5678 ou (11) 1234-5678
+    const d = digits.replace(/\D/g, '').slice(0, 11);
+
+    if (d.length <= 2) {
+      return d;
+    }
+    if (d.length <= 6) {
+      // (11) 1234
+      return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    }
+    if (d.length <= 10) {
+      // (11) 1234-5678
+      return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    }
+    // 11 dígitos -> (11) 91234-5678
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  };
+
   const handleTelefoneChange = (value: string) => {
-    const onlyDigits = value.replace(/\D/g, '').slice(0, 11); // só número, max 11
+    const onlyDigits = value.replace(/\D/g, '').slice(0, 11);
     setTelefone(onlyDigits);
   };
 
@@ -55,33 +76,66 @@ const RegisterUserScreen = ({ navigation }: any) => {
     setDtNasc(formatted);
   };
 
-const validarCampos = () => {
-  if (!nm_usuario.trim()) return 'Informe o nome.';
-  if (!email_usuario.trim()) return 'Informe o e-mail.';
-  if (!email_usuario.includes('@')) return 'E-mail inválido.';
-  if (senha_usuario.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
-  if (senha_usuario !== confirmarSenha) return 'As senhas não conferem.';
-  if (cpf_usuario.length !== 11) return 'CPF deve ter 11 dígitos numéricos.';
-  if (tel_usuario.length < 10) return 'Telefone deve ter DDD + número.';
-  if (dt_nasc_usuario.length !== 10) return 'Data de nascimento inválida. Use dd/mm/aaaa.';
+  const validarDataNascimento = (dataBr: string): string | null => {
+    if (dataBr.length !== 10) {
+      return 'Data de nascimento inválida. Use dd/mm/aaaa.';
+    }
 
-  const [dia, mes, ano] = dt_nasc_usuario.split('/');
-  if (!dia || !mes || !ano || ano.length !== 4) {
-    return 'Data de nascimento inválida.';
-  }
+    const [diaStr, mesStr, anoStr] = dataBr.split('/');
+    const d = Number(diaStr);
+    const m = Number(mesStr);
+    const a = Number(anoStr);
 
-  const d = Number(dia);
-  const m = Number(mes);
-  const a = Number(ano);
-  const anoAtual = new Date().getFullYear();
+    if (!d || !m || !a || anoStr.length !== 4) {
+      return 'Data de nascimento inválida.';
+    }
 
-  if (d < 1 || d > 31 || m < 1 || m > 12 || a < 1900 || a > anoAtual) {
-    return 'Data de nascimento inválida.';
-  }
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
 
-  return null;
-};
+    if (a < MIN_YEAR) {
+      return `Data de nascimento inválida. Não existe ninguém vivo desde ${MIN_YEAR}.`;
+    }
 
+    if (a > anoAtual) {
+      return 'Data de nascimento não pode ser no futuro.';
+    }
+
+    // monta Date e valida se é uma data real
+    const data = new Date(a, m - 1, d);
+    if (
+      data.getFullYear() !== a ||
+      data.getMonth() !== m - 1 ||
+      data.getDate() !== d
+    ) {
+      return 'Data de nascimento inválida.';
+    }
+
+    // não pode ser depois de hoje
+    if (data.getTime() > hoje.getTime()) {
+      return 'Data de nascimento não pode ser no futuro.';
+    }
+
+    return null;
+  };
+
+  const validarCampos = () => {
+    if (!nm_usuario.trim()) return 'Informe o nome.';
+    if (!email_usuario.trim()) return 'Informe o e-mail.';
+    if (!email_usuario.includes('@')) return 'E-mail inválido.';
+    if (senha_usuario.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
+    if (senha_usuario !== confirmarSenha) return 'As senhas não conferem.';
+    if (cpf_usuario.length !== 11) return 'CPF deve ter 11 dígitos numéricos.';
+
+    if (tel_usuario.length < 10) {
+      return 'Telefone deve ter DDD + número.';
+    }
+
+    const erroData = validarDataNascimento(dt_nasc_usuario);
+    if (erroData) return erroData;
+
+    return null;
+  };
 
   const handleRegister = async () => {
     setErro(null);
@@ -103,11 +157,9 @@ const validarCampos = () => {
         senha_usuario,
         cpf_usuario,
         dt_nasc_usuario: dtISO,
-        tel_usuario,
+        tel_usuario, // aqui vai só dígito (sem máscara)
       });
-
-      // Se chegou aqui, cadastrou e já logou => volta pra tela anterior ou vai pro app
-      // Se o AppNavigator já usa token, ele vai cair nas telas principais automaticamente
+      // navegação é controlada pelo fluxo de auth/token
     } catch (e: any) {
       setErro(e.message || 'Erro ao registrar jogador.');
     } finally {
@@ -188,12 +240,12 @@ const validarCampos = () => {
               <Text style={styles.label}>Telefone</Text>
               <TextInput
                 style={styles.input}
-                value={tel_usuario}
+                value={formatTelefone(tel_usuario)}
                 onChangeText={handleTelefoneChange}
-                placeholder="DDD + número"
+                placeholder="(11) 91234-5678"
                 placeholderTextColor="#6B7280"
                 keyboardType="numeric"
-                maxLength={11}
+                maxLength={15} // por causa da máscara
               />
             </View>
 

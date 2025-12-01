@@ -7,6 +7,11 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
@@ -26,118 +31,134 @@ const LoginScreen = ({ navigation }: any) => {
 
     try {
       await login({ email, senha });
-      // Não precisa navegar aqui: o AppNavigator reage ao token
     } catch (e: any) {
       setErro(e.message || 'Erro ao fazer login.');
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.box}>
-        <Text style={styles.logo}>DraftMe</Text>
-
-        <Text style={styles.subtitle}>Entre para jogar o próximo jogo da sua vida</Text>
-
-        {/* Toggle Usuário / Time */}
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              tipoSelecionado === 'usuario' && styles.toggleButtonActive,
-            ]}
-            onPress={() => setTipoSelecionado('usuario')}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text
-              style={[
-                styles.toggleText,
-                tipoSelecionado === 'usuario' && styles.toggleTextActive,
-              ]}
-            >
-              Jogador
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.box}>
+              <Text style={styles.logo}>DraftMe</Text>
 
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              tipoSelecionado === 'time' && styles.toggleButtonActive,
-            ]}
-            onPress={() => setTipoSelecionado('time')}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                tipoSelecionado === 'time' && styles.toggleTextActive,
-              ]}
-            >
-              Time
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Text style={styles.subtitle}>
+                Entre para jogar o próximo jogo da sua vida
+              </Text>
 
-        {/* Campo de e-mail */}
-        <View style={styles.field}>
-          <Text style={styles.label}>E-mail</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={
-              tipoSelecionado === 'usuario'
-                ? 'seuemail@exemplo.com'
-                : 'contato@seutime.com'
-            }
-            placeholderTextColor="#6B7280"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-        </View>
+              {/* Toggle Usuário / Time */}
+              <View style={styles.toggleContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    tipoSelecionado === 'usuario' && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setTipoSelecionado('usuario')}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      tipoSelecionado === 'usuario' && styles.toggleTextActive,
+                    ]}
+                  >
+                    Jogador
+                  </Text>
+                </TouchableOpacity>
 
-        {/* Campo de senha */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="********"
-            placeholderTextColor="#6B7280"
-            secureTextEntry
-            value={senha}
-            onChangeText={setSenha}
-          />
-        </View>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    tipoSelecionado === 'time' && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setTipoSelecionado('time')}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      tipoSelecionado === 'time' && styles.toggleTextActive,
+                    ]}
+                  >
+                    Time
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-        {erro && <Text style={styles.errorText}>{erro}</Text>}
+              {/* Campo de e-mail */}
+              <View style={styles.field}>
+                <Text style={styles.label}>E-mail</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={
+                    tipoSelecionado === 'usuario'
+                      ? 'seuemail@exemplo.com'
+                      : 'contato@seutime.com'
+                  }
+                  placeholderTextColor="#6B7280"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#F9FAFB" />
-          ) : (
-            <Text style={styles.buttonText}>Entrar</Text>
-          )}
-        </TouchableOpacity>
+              {/* Campo de senha */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Senha</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="********"
+                  placeholderTextColor="#6B7280"
+                  secureTextEntry
+                  value={senha}
+                  onChangeText={setSenha}
+                />
+              </View>
 
-        <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Ainda não tem conta?</Text>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate(
-                tipoSelecionado === 'usuario' ? 'RegisterUser' : 'RegisterTeam',
-              )
-            }
-          >
-            <Text style={styles.footerLink}>
-              {tipoSelecionado === 'usuario'
-                ? 'Cadastrar jogador'
-                : 'Cadastrar time'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+              {erro && <Text style={styles.errorText}>{erro}</Text>}
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#F9FAFB" />
+                ) : (
+                  <Text style={styles.buttonText}>Entrar</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.footerRow}>
+                <Text style={styles.footerText}>Ainda não tem conta?</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate(
+                      tipoSelecionado === 'usuario'
+                        ? 'RegisterUser'
+                        : 'RegisterTeam',
+                    )
+                  }
+                >
+                  <Text style={styles.footerLink}>
+                    {tipoSelecionado === 'usuario'
+                      ? 'Cadastrar jogador'
+                      : 'Cadastrar time'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -145,6 +166,17 @@ const LoginScreen = ({ navigation }: any) => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#182d46ff',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+
   container: {
     flex: 1,
     backgroundColor: '#182d46ff',

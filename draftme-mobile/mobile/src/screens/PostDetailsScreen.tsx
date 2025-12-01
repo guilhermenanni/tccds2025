@@ -11,6 +11,10 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
@@ -37,14 +41,14 @@ interface PostagemDetalhe {
 }
 
 const PostDetailsScreen = ({ route, navigation }: any) => {
-  const { id_postagem, focusComment } = route.params;
+  const { id_postagem } = route.params;
   const [postagem, setPostagem] = useState<PostagemDetalhe | null>(null);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [loading, setLoading] = useState(true);
   const [comentarioTexto, setComentarioTexto] = useState('');
   const [sending, setSending] = useState(false);
   const { user } = useAuth();
-  const insets = useSafeAreaInsets(); // respeita a barra inferior
+  const insets = useSafeAreaInsets();
 
   const loadData = async () => {
     try {
@@ -54,7 +58,7 @@ const PostDetailsScreen = ({ route, navigation }: any) => {
       );
 
       if (post) {
-        const detalhe: PostagemDetalhe = {
+        setPostagem({
           id_postagem: post.id_postagem,
           texto_postagem: post.texto_postagem,
           img_postagem: post.img_postagem ?? null,
@@ -65,8 +69,7 @@ const PostDetailsScreen = ({ route, navigation }: any) => {
           autor: post.autor,
           avatar: post.avatar ?? null,
           tipo_autor: post.tipo_autor as 'usuario' | 'time',
-        };
-        setPostagem(detalhe);
+        });
       } else {
         setPostagem(null);
       }
@@ -101,22 +104,26 @@ const PostDetailsScreen = ({ route, navigation }: any) => {
 
     try {
       setSending(true);
-      const payload = {
-        texto_comentario: comentarioTexto.trim(),
-      };
 
       const response = await api.post(
         `/comentarios/postagem/${id_postagem}`,
-        payload
+        { texto_comentario: comentarioTexto.trim() }
       );
 
-      const novoComentario: Comentario = {
-        id_comentario: response.data.data.id_comentario,
-        texto_comentario: response.data.data.texto_comentario,
-        autor: response.data.data.autor,
+      const novo = response.data.data as {
+        id_comentario: number;
+        texto_comentario: string;
+        autor: string;
       };
 
-      setComentarios((prev) => [novoComentario, ...prev]);
+      setComentarios((prev) => [
+        {
+          id_comentario: novo.id_comentario,
+          texto_comentario: novo.texto_comentario,
+          autor: novo.autor,
+        },
+        ...prev,
+      ]);
       setComentarioTexto('');
     } catch (e) {
       console.log('Erro ao enviar comentário:', e);
@@ -153,64 +160,79 @@ const PostDetailsScreen = ({ route, navigation }: any) => {
     );
   }
 
+  // padding pra não colar na barra de navegação quando o teclado tá FECHADO
+  const bottomSafe = Math.max(insets.bottom, 6);
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER COM BOTÃO DE VOLTAR */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>{'< Voltar'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        ListHeaderComponent={
-          <PostCard
-            autor={postagem.autor}
-            avatar={postagem.avatar}
-            texto_postagem={postagem.texto_postagem}
-            categoria={postagem.categoria}
-            tag={postagem.tag}
-            img_postagem={postagem.img_postagem}
-            curtidas_count={postagem.curtidas_count}
-            comentarios_count={postagem.comentarios_count}
-          />
-        }
-        data={comentarios}
-        keyExtractor={(item) => String(item.id_comentario)}
-        renderItem={renderComentario}
-        contentContainerStyle={{
-          paddingBottom: 160 + insets.bottom, // espaço pra não ficar atrás do input
-        }}
-      />
-
-      <View
-        style={[
-          styles.commentInputBox,
-          { paddingBottom: 8 + insets.bottom }, // sobe acima da barra de gestos
-        ]}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior="padding" // funciona bem nos dois
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        <TextInput
-          style={styles.commentInput}
-          placeholder="Adicionar comentário..."
-          placeholderTextColor="#9CA3AF"
-          value={comentarioTexto}
-          onChangeText={setComentarioTexto}
-        />
-        <TouchableOpacity
-          style={styles.commentButton}
-          onPress={handleComentar}
-          disabled={sending}
-        >
-          {sending ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.commentButtonText}>Enviar</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.inner}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={styles.backButtonText}>{'< Voltar'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Conteúdo + comentários */}
+            <FlatList
+              style={styles.list}
+              ListHeaderComponent={
+                <PostCard
+                  autor={postagem.autor}
+                  avatar={postagem.avatar}
+                  texto_postagem={postagem.texto_postagem}
+                  categoria={postagem.categoria}
+                  tag={postagem.tag}
+                  img_postagem={postagem.img_postagem}
+                  curtidas_count={postagem.curtidas_count}
+                  comentarios_count={postagem.comentarios_count}
+                />
+              }
+              data={comentarios}
+              keyExtractor={(item) => String(item.id_comentario)}
+              renderItem={renderComentario}
+              contentContainerStyle={{ paddingBottom: 16 }}
+              keyboardShouldPersistTaps="handled"
+            />
+
+            {/* Barra de comentário */}
+            <View
+              style={[
+                styles.commentInputBox,
+                { paddingBottom: bottomSafe },
+              ]}
+            >
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Adicionar comentário..."
+                placeholderTextColor="#9CA3AF"
+                value={comentarioTexto}
+                onChangeText={setComentarioTexto}
+              />
+              <TouchableOpacity
+                style={styles.commentButton}
+                onPress={handleComentar}
+                disabled={sending}
+              >
+                {sending ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.commentButtonText}>Enviar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -222,6 +244,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#182d46ff',
   },
+  inner: {
+    flex: 1,
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -229,6 +254,25 @@ const styles = StyleSheet.create({
   error: {
     color: '#F87171',
     textAlign: 'center',
+  },
+  header: {
+    paddingTop: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  backButtonText: {
+    color: '#E5E7EB',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  list: {
+    flex: 1,
   },
   commentBox: {
     marginHorizontal: 12,
@@ -246,15 +290,11 @@ const styles = StyleSheet.create({
     color: '#D1D5DB',
   },
   commentInputBox: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#111827',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingTop: 8,
+    backgroundColor: '#111827',
   },
   commentInput: {
     flex: 1,
@@ -274,21 +314,5 @@ const styles = StyleSheet.create({
   commentButtonText: {
     color: '#ffffff',
     fontWeight: '600',
-  },
-  header: {
-    paddingTop: 16,
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  backButtonText: {
-    color: '#E5E7EB',
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
