@@ -315,6 +315,7 @@ export const listarMinhasSeletivas = async (req, res, next) => {
           i.id_inscricao,
           i.data_inscricao,
           i.status,
+          u.tel_usuario
           s.id_seletiva,
           s.titulo,
           s.localizacao,
@@ -391,18 +392,19 @@ export const listarInscritosSeletiva = async (req, res, next) => {
     }
 
     const id_time = user.id;
-
     const [rows] = await pool.query(
       `SELECT
         i.id_inscricao,
         i.data_inscricao,
         u.id_usuario,
         u.nm_usuario,
-        u.email_usuario
+        u.email_usuario,
+        u.tel_usuario,       -- ⬅️ AQUI (ESTAVA FALTANDO)
+        u.img_usuario        -- opcional, mas já deixei pra você
       FROM tb_inscricao_seletiva i
       INNER JOIN tb_seletiva s ON i.id_seletiva = s.id_seletiva
       INNER JOIN tb_usuario u ON i.id_usuario = u.id_usuario
-      WHERE i.id_seletiva = ? 
+      WHERE i.id_seletiva = ?
         AND s.id_time = ?
       ORDER BY i.data_inscricao DESC`,
       [id, id_time]

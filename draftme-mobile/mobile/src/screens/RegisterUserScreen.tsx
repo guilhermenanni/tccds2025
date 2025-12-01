@@ -24,35 +24,24 @@ const RegisterUserScreen = ({ navigation }: any) => {
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
   const [cpf_usuario, setCpf] = useState('');
-  const [dt_nasc_usuario, setDtNasc] = useState(''); // guarda no formato dd/mm/aaaa
-  const [tel_usuario, setTelefone] = useState('');   // guarda só dígitos
+  const [dt_nasc_usuario, setDtNasc] = useState('');
+  const [tel_usuario, setTelefone] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // --- Helpers de formatação e validação ---
-
   const handleCpfChange = (value: string) => {
-    const onlyDigits = value.replace(/\D/g, '').slice(0, 11); // só número, max 11
+    const onlyDigits = value.replace(/\D/g, '').slice(0, 11);
     setCpf(onlyDigits);
   };
 
   const formatTelefone = (digits: string) => {
-    // formata visualmente: (11) 91234-5678 ou (11) 1234-5678
     const d = digits.replace(/\D/g, '').slice(0, 11);
 
-    if (d.length <= 2) {
-      return d;
-    }
-    if (d.length <= 6) {
-      // (11) 1234
-      return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-    }
-    if (d.length <= 10) {
-      // (11) 1234-5678
-      return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-    }
-    // 11 dígitos -> (11) 91234-5678
+    if (d.length <= 2) return d;
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+
     return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
   };
 
@@ -62,46 +51,34 @@ const RegisterUserScreen = ({ navigation }: any) => {
   };
 
   const handleDtNascChange = (value: string) => {
-    let digits = value.replace(/\D/g, '').slice(0, 8); // ddmmaaaa
+    let digits = value.replace(/\D/g, '').slice(0, 8);
     let formatted = '';
 
-    if (digits.length <= 2) {
-      formatted = digits;
-    } else if (digits.length <= 4) {
+    if (digits.length <= 2) formatted = digits;
+    else if (digits.length <= 4)
       formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    } else {
+    else
       formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    }
 
     setDtNasc(formatted);
   };
 
   const validarDataNascimento = (dataBr: string): string | null => {
-    if (dataBr.length !== 10) {
-      return 'Data de nascimento inválida. Use dd/mm/aaaa.';
-    }
+    if (dataBr.length !== 10) return 'Data de nascimento inválida. Use dd/mm/aaaa.';
 
     const [diaStr, mesStr, anoStr] = dataBr.split('/');
     const d = Number(diaStr);
     const m = Number(mesStr);
     const a = Number(anoStr);
 
-    if (!d || !m || !a || anoStr.length !== 4) {
-      return 'Data de nascimento inválida.';
-    }
+    if (!d || !m || !a || anoStr.length !== 4) return 'Data de nascimento inválida.';
 
     const hoje = new Date();
     const anoAtual = hoje.getFullYear();
 
-    if (a < MIN_YEAR) {
-      return `Data de nascimento inválida. Não existe ninguém vivo desde ${MIN_YEAR}.`;
-    }
+    if (a < MIN_YEAR) return `Data de nascimento inválida.`;
+    if (a > anoAtual) return 'Data de nascimento não pode ser no futuro.';
 
-    if (a > anoAtual) {
-      return 'Data de nascimento não pode ser no futuro.';
-    }
-
-    // monta Date e valida se é uma data real
     const data = new Date(a, m - 1, d);
     if (
       data.getFullYear() !== a ||
@@ -111,10 +88,7 @@ const RegisterUserScreen = ({ navigation }: any) => {
       return 'Data de nascimento inválida.';
     }
 
-    // não pode ser depois de hoje
-    if (data.getTime() > hoje.getTime()) {
-      return 'Data de nascimento não pode ser no futuro.';
-    }
+    if (data.getTime() > hoje.getTime()) return 'Data de nascimento não pode ser no futuro.';
 
     return null;
   };
@@ -125,11 +99,8 @@ const RegisterUserScreen = ({ navigation }: any) => {
     if (!email_usuario.includes('@')) return 'E-mail inválido.';
     if (senha_usuario.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
     if (senha_usuario !== confirmarSenha) return 'As senhas não conferem.';
-    if (cpf_usuario.length !== 11) return 'CPF deve ter 11 dígitos numéricos.';
-
-    if (tel_usuario.length < 10) {
-      return 'Telefone deve ter DDD + número.';
-    }
+    if (cpf_usuario.length !== 11) return 'CPF deve ter 11 dígitos.';
+    if (tel_usuario.length < 10) return 'Telefone deve ter DDD + número.';
 
     const erroData = validarDataNascimento(dt_nasc_usuario);
     if (erroData) return erroData;
@@ -147,7 +118,7 @@ const RegisterUserScreen = ({ navigation }: any) => {
     }
 
     const [dia, mes, ano] = dt_nasc_usuario.split('/');
-    const dtISO = `${ano}-${mes}-${dia}`; // formato que o backend espera (YYYY-MM-DD)
+    const dtISO = `${ano}-${mes}-${dia}`;
 
     try {
       setLoading(true);
@@ -157,9 +128,8 @@ const RegisterUserScreen = ({ navigation }: any) => {
         senha_usuario,
         cpf_usuario,
         dt_nasc_usuario: dtISO,
-        tel_usuario, // aqui vai só dígito (sem máscara)
+        tel_usuario,
       });
-      // navegação é controlada pelo fluxo de auth/token
     } catch (e: any) {
       setErro(e.message || 'Erro ao registrar jogador.');
     } finally {
@@ -173,10 +143,11 @@ const RegisterUserScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 20}
       >
         <ScrollView
-          contentContainerStyle={styles.container}
+          contentContainerStyle={[styles.container, { paddingBottom: 60 }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.box}>
@@ -202,8 +173,8 @@ const RegisterUserScreen = ({ navigation }: any) => {
                 onChangeText={setEmail}
                 placeholder="seuemail@exemplo.com"
                 placeholderTextColor="#6B7280"
-                keyboardType="email-address"
                 autoCapitalize="none"
+                keyboardType="email-address"
                 maxLength={120}
               />
             </View>
@@ -245,7 +216,7 @@ const RegisterUserScreen = ({ navigation }: any) => {
                 placeholder="(11) 91234-5678"
                 placeholderTextColor="#6B7280"
                 keyboardType="numeric"
-                maxLength={15} // por causa da máscara
+                maxLength={15}
               />
             </View>
 
@@ -311,7 +282,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 24,
   },

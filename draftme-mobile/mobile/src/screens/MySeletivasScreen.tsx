@@ -35,7 +35,7 @@ interface Inscrito {
   id_usuario: number;
   nm_usuario: string;
   email_usuario: string;
-  tel_usuario?: string | null;
+  tel_usuario: string;
   img_usuario?: string | null;
   data_inscricao?: string | null;
   status?: string | null;
@@ -178,8 +178,11 @@ const MySeletivasScreen: React.FC = () => {
         id_usuario: item.id_usuario,
         nm_usuario: item.nm_usuario,
         email_usuario: item.email_usuario,
+        tel_usuario: item.tel_usuario,    // ADICIONADO
+        img_usuario: item.img_usuario ?? null,
         data_inscricao: item.data_inscricao ?? null,
       }));
+      
 
       setInscritosPorSeletiva((prev) => ({
         ...prev,
@@ -282,6 +285,9 @@ const MySeletivasScreen: React.FC = () => {
                       </Text>
                       <Text style={styles.inscritoInfo}>
                         {inscrito.email_usuario}
+                      </Text>
+                      <Text style={styles.inscritoInfo}>
+                        {inscrito.tel_usuario}
                       </Text>
                       {inscrito.data_inscricao && (
                         <Text style={styles.inscritoInfo}>

@@ -4,18 +4,17 @@ import { createPool } from '../config/db.js';
 
 const pool = createPool();
 
-// 3. COMENTÁRIOS
-
-// Lista comentários de uma postagem específica
+// =====================================
+// LISTAR COMENTÁRIOS DE UMA POSTAGEM
+// =====================================
 export const listarComentariosPorPostagem = async (req, res, next) => {
   try {
-    // app pode mandar como /comentarios/postagem/:id_postagem
     const { id_postagem } = req.params;
 
     const [rows] = await pool.query(
       `SELECT 
         c.id_comentario,
-        c.comentario,           -- nome correto da coluna
+        c.texto_comentario,       -- nome REAL da coluna
         c.data_comentario,
         u.id_usuario,
         u.nm_usuario,
@@ -33,7 +32,7 @@ export const listarComentariosPorPostagem = async (req, res, next) => {
 
     const data = rows.map((row) => ({
       id_comentario: row.id_comentario,
-      texto_comentario: row.comentario,      // o front continua usando texto_comentario
+      texto_comentario: row.texto_comentario,
       data_comentario: row.data_comentario,
       autor: row.nm_usuario || row.nm_time,
       avatar: row.img_usuario || row.img_time,
@@ -46,10 +45,11 @@ export const listarComentariosPorPostagem = async (req, res, next) => {
   }
 };
 
-// Adiciona comentário em uma postagem
+// =====================================
+// ADICIONAR COMENTÁRIO
+// =====================================
 export const adicionarComentario = async (req, res, next) => {
   try {
-    // pode vir no body (id_postagem) ou na URL (/comentarios/postagem/:id_postagem)
     let id_postagem = req.body.id_postagem || req.params.id_postagem;
     const { texto_comentario } = req.body;
     const { id, type } = req.user;
@@ -70,15 +70,18 @@ export const adicionarComentario = async (req, res, next) => {
 
     let id_usuario = null;
     let id_time = null;
+
     if (type === 'usuario') id_usuario = id;
     if (type === 'time') id_time = id;
 
+    // INSERE COM NOME CORRETO DA COLUNA
     const [result] = await pool.query(
-      `INSERT INTO tb_comentario (id_postagem, comentario, id_usuario, id_time)
+      `INSERT INTO tb_comentario (id_postagem, texto_comentario, id_usuario, id_time)
        VALUES (?, ?, ?, ?)`,
       [id_postagem, texto_comentario, id_usuario, id_time]
     );
 
+    // BUSCA O COMENTÁRIO INSERIDO
     const [rows] = await pool.query(
       'SELECT * FROM tb_comentario WHERE id_comentario = ?',
       [result.insertId]
@@ -91,7 +94,7 @@ export const adicionarComentario = async (req, res, next) => {
       id_postagem: row.id_postagem,
       id_usuario: row.id_usuario,
       id_time: row.id_time,
-      texto_comentario: row.comentario,        // normaliza pro nome que o front espera
+      texto_comentario: row.texto_comentario,  // nome correto
       data_comentario: row.data_comentario,
     };
 
@@ -105,7 +108,9 @@ export const adicionarComentario = async (req, res, next) => {
   }
 };
 
-// Deleta comentário (apenas o dono pode apagar)
+// =====================================
+// DELETAR COMENTÁRIO
+// =====================================
 export const deletarComentario = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -136,7 +141,10 @@ export const deletarComentario = async (req, res, next) => {
       });
     }
 
-    await pool.query('DELETE FROM tb_comentario WHERE id_comentario = ?', [id]);
+    await pool.query(
+      'DELETE FROM tb_comentario WHERE id_comentario = ?',
+      [id]
+    );
 
     res.json({ success: true, message: 'Comentário deletado com sucesso' });
   } catch (err) {

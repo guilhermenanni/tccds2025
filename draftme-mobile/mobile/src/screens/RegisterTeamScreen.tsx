@@ -28,7 +28,7 @@ const RegisterTeamScreen = ({ navigation }: any) => {
   const [erro, setErro] = useState<string | null>(null);
 
   const handleCnpjChange = (value: string) => {
-    const onlyDigits = value.replace(/\D/g, '').slice(0, 14); // cnpj 14 dígitos
+    const onlyDigits = value.replace(/\D/g, '').slice(0, 14); 
     setCnpj(onlyDigits);
   };
 
@@ -76,10 +76,11 @@ const RegisterTeamScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 20}
       >
         <ScrollView
-          contentContainerStyle={styles.container}
+          contentContainerStyle={[styles.container, { paddingBottom: 60 }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.box}>
@@ -210,7 +211,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 24,
   },
